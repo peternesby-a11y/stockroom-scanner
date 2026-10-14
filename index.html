@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Stockroom Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#151d26">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAB8UlEQVR4nO3UsRGCQBRAQXEcOzGjJauzEfqwCWIjMwPxKRES7IZ3cPeDNzfM03iAT47/HoD9EgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHKTTNtdcro+3lfvtvNx9LS5XPh6y/Ob7aWtuWXPCz/lXDrzyx7fdzXg5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDtIwT+O/Z2CnvBwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZCeBd4sIS+3NAYAAAAASUVORK5CYII=">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAB8UlEQVR4nO3UsRGCQBRAQXEcOzGjJauzEfqwCWIjMwPxKRES7IZ3cPeDNzfM03iAT47/HoD9EgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHCRxkMRBEgdJHKTTNtdcro+3lfvtvNx9LS5XPh6y/Ob7aWtuWXPCz/lXDrzyx7fdzXg5SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDpI4SOIgiYMkDtIwT+O/Z2CnvBwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZDEQRIHSRwkcZCeBd4sIS+3NAYAAAAASUVORK5CYII=">
+<meta name="apple-mobile-web-app-title" content="Scanner">
+<style>
+/* Layout: one-screen phone tool. Sticky location + scan controls on top, scrolling ledger in the middle, fixed export bar at the bottom. */
+:root{
+  --bg:#edf0f3; --surface:#ffffff; --ink:#151d26; --muted:#596674; --line:#d3d9e0;
+  --accent:#f0c02c; --accent-ink:#1c1600; --good:#2c8653; --bad:#bb3b2b; --chip:#e3e8ee;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10151b; --surface:#19212a; --ink:#e6ebf0; --muted:#94a1ae; --line:#2b3540;
+  --accent:#f0c02c; --accent-ink:#1c1600; --good:#4fb57c; --bad:#e2685a; --chip:#232d37; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151b; --surface:#19212a; --ink:#e6ebf0; --muted:#94a1ae; --line:#2b3540;
+  --accent:#f0c02c; --accent-ink:#1c1600; --good:#4fb57c; --bad:#e2685a; --chip:#232d37; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 var(--f-body);-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:flex;flex-direction:column;min-height:100%;max-width:640px;margin:0 auto;padding-inline:16px;padding-block:0 calc(84px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;display:grid;gap:10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand h1{margin:0;font:700 20px/1 var(--f-display);letter-spacing:.01em;text-transform:uppercase}
+.brand h1 span{display:inline-block;width:10px;height:18px;margin-right:8px;vertical-align:-2px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 3px,var(--ink) 3px 4px,transparent 4px 6px)}
+.sync{font-size:12px;color:var(--muted);background:var(--chip);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.sync.cloud::before,.sync.local::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.sync.cloud::before{background:var(--good)} .sync.local::before{background:var(--accent)}
+label.lbl{display:block;font:600 11px/1 var(--f-display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
+input.field,select.field,textarea.field{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px}
+textarea.field{min-height:70px;resize:vertical}
+.scanrow{display:grid;grid-template-columns:1fr;gap:8px}
+.btn-scan{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:700 19px/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+.btn-scan:active{transform:translateY(1px)}
+.btn-scan svg{width:26px;height:26px}
+.manual{display:flex;gap:8px}
+.manual input{flex:1;min-width:0;font-family:var(--f-mono)}
+.btn{min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.danger.armed{background:var(--bad);color:#fff}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.last{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
+.last .eyebrow{font:600 11px/1 var(--f-display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.last .nm{font-weight:600;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.last .nm.missing{color:var(--muted);font-weight:500;font-style:italic}
+.codeline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-family:var(--f-mono);font-size:14px}
+.tag{font:600 10px/1 var(--f-display);text-transform:uppercase;letter-spacing:.07em;background:var(--chip);color:var(--muted);border-radius:4px;padding:4px 6px;font-family:var(--f-display)}
+.qtyctl{display:flex;align-items:center;gap:8px}
+.qtyctl button{width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:22px;line-height:1}
+.qtyctl output,.qtyctl input{min-width:48px;text-align:center;font:600 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.qtyctl input{width:80px;background:var(--surface);border:1px solid var(--line);border-radius:8px;height:44px}
+.namefix{display:flex;gap:8px}.namefix input{flex:1;min-width:0}
+.ledgerhead{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:8px;margin-top:18px}
+.ledgerhead h2{margin:0;font:700 15px/1 var(--f-display);text-transform:uppercase;letter-spacing:.06em}
+.totals{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+ul.rows{list-style:none;margin:10px 0 0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+ul.rows li{border-top:1px solid var(--line)}
+ul.rows li:first-child{border-top:0}
+ul.rows li button.rowbtn{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:11px 14px;cursor:pointer}
+ul.rows li button.rowbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.qtyctl .grow{flex:1}
+.r-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.r-name.missing{color:var(--muted);font-weight:500;font-style:italic}
+.r-qty{grid-row:span 2;align-self:center;font:600 20px/1 var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.r-qty small{display:block;font:500 10px/1.4 var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.r-meta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.r-meta .code{font-family:var(--f-mono);color:var(--ink)}
+ul.rows li.flash{animation:flash 1.2s ease-out}
+@keyframes flash{from{background:color-mix(in srgb,var(--accent) 35%,var(--surface))}to{background:var(--surface)}}
+.empty{margin-top:10px;border:1.5px dashed var(--line);border-radius:10px;padding:22px 18px;color:var(--muted);display:grid;gap:8px}
+.empty strong{color:var(--ink);font:700 16px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.empty ol{margin:0;padding-left:20px;display:grid;gap:4px}
+nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--surface);border-top:1px solid var(--line);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
+nav.bar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+nav.bar button{border:0;background:none;display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:8px;font:600 11.5px/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em;color:var(--ink);min-height:48px}
+nav.bar button svg{width:22px;height:22px}
+nav.bar button:active{background:var(--chip)}
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(8,12,16,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:640px;max-height:88%;overflow:auto;background:var(--surface);border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+.sheet h3{margin:0;font:700 18px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.sheet .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+.sheet .actions .grow{flex:1}
+.sheet p{margin:0}
+.kv{font-size:13px;color:var(--muted)} .kv b{color:var(--ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.lastbody{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.lastbody .txt{display:grid;gap:6px;min-width:0;flex:1}
+.thumb{width:64px;height:64px;flex:none;border-radius:8px;border:1px solid var(--line);background:#fff;object-fit:contain}
+.sub{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.lk{font:600 12px/1.3 var(--f-body);color:var(--muted)}
+.qtyctl .btn{width:auto;height:44px;font-size:15px;padding:0 16px}
+.lk.ok{color:var(--good)} .lk.warn{color:var(--bad)}
+.lk.busy::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);animation:blink 1s steps(2) infinite}
+.photo{max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--line);background:#fff;object-fit:contain;justify-self:start}
+.lklog{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted)}
+.cam{position:fixed;inset:0;z-index:30;background:#000;display:flex;flex-direction:column}
+.cam video{flex:1;width:100%;object-fit:cover;min-height:0}
+.cam .reticle{position:absolute;left:8%;right:8%;top:38%;height:22%;border:2px solid var(--accent);border-radius:10px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35);pointer-events:none}
+.cam .reticle::after{content:"";position:absolute;left:4%;right:4%;top:50%;height:2px;background:#ff4b3a;opacity:.85}
+.cam.hit .reticle{border-color:#4fe08a}
+.cam .camtop,.cam .cambot{position:absolute;left:0;right:0;padding:14px 16px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cam .camtop{top:0;padding-top:calc(14px + env(safe-area-inset-top,0px));background:linear-gradient(rgba(0,0,0,.6),transparent)}
+.cam .cambot{bottom:0;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgba(0,0,0,.7));flex-direction:column;align-items:stretch}
+.cam .camlast{font-size:14px;min-height:20px;text-align:center;overflow-wrap:anywhere}
+.cam .camlast b{font-family:var(--f-mono)}
+.cam .btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35)}
+.cam .done{background:var(--accent);color:var(--accent-ink);border:0;min-height:52px;border-radius:10px;font:700 17px/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.busy{position:fixed;inset:0;z-index:35;background:rgba(8,12,16,.55);display:grid;place-items:center;color:#fff;font:600 16px/1.3 var(--f-display);text-transform:uppercase;letter-spacing:.05em;text-align:center;padding:24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.scanstat{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;width:100%;min-height:42px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);text-align:left;font-size:13.5px;transition:background .3s}
+.scanstat .dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent);flex:none}
+.scanstat .st{font-weight:600}
+.scanstat .lastread{margin-left:auto;font-family:var(--f-mono);font-size:12.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.scanstat.idle{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.scanstat.idle .dot{background:var(--accent);box-shadow:none;animation:blink 1.2s steps(2) infinite}
+.scanstat.got{background:color-mix(in srgb,var(--good) 20%,var(--surface))}
+@keyframes blink{50%{opacity:.2}}
+.switch{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.switch input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--ink)}
+.switch span small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+.tips{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.tips b{color:var(--ink)}
+@media (min-width:820px) and (pointer:fine){
+  .app{max-width:980px}
+  header.top{grid-template-columns:1fr 1fr;column-gap:16px;align-items:end}
+  .brand{grid-column:1/-1}
+  .btn-scan{min-height:44px;font-size:15px}
+  nav.bar .in{max-width:980px}
+}
+@media (prefers-reduced-motion:reduce){ul.rows li.flash,.scanstat.idle .dot{animation:none}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1><span aria-hidden="true"></span>Stockroom Scanner</h1>
+      <div class="chips"><div class="sync lkchip" id="lkChip" hidden></div><div class="sync local" id="sync">On this phone</div></div>
+    </div>
+    <div>
+      <label class="lbl" for="loc">Scanning at (location / bin)</label>
+      <input class="field" id="loc" list="locs" placeholder="e.g. Shop – back room" autocomplete="off">
+      <datalist id="locs"></datalist>
+    </div>
+    <div class="scanrow">
+      <button class="btn-scan" id="scanBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8" stroke-width="1.6"/></svg>
+        <span id="scanLabel">Scan barcode</span>
+      </button>
+      <form class="manual" id="manualForm" autocomplete="off">
+        <label class="sr" for="manual">Type or wedge-scan a barcode</label>
+        <input class="field" id="manual" inputmode="text" placeholder="Type a barcode or SKU" enterkeyhint="done">
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <p class="hint" id="modeHint">Tap Scan, take a close, steady photo of one barcode, and it's added.</p>
+    </div>
+    <button class="scanstat" id="scanStat" type="button" hidden><span class="dot" aria-hidden="true"></span><span class="st" id="scanStatText">Handheld scanner ready</span><span class="lastread" id="scanStatLast"></span></button>
+  </header>
+
+  <section class="last" id="last" hidden aria-live="polite"></section>
+
+  <div class="ledgerhead">
+    <h2>Count sheet</h2>
+    <div class="totals" id="totals"></div>
+  </div>
+  <div class="filters" id="filters" hidden>
+    <div><label class="lbl" for="fLoc">Show</label><select class="field" id="fLoc"></select></div>
+    <div><label class="lbl" for="q">Search</label><input class="field" id="q" type="search" placeholder="Name, code, note"></div>
+  </div>
+  <ul class="rows" id="rows" hidden></ul>
+  <div class="empty" id="empty">
+    <strong>No scans yet</strong>
+    <ol>
+      <li>Type where you're counting in <b>Scanning at</b>.</li>
+      <li>Pull the trigger on your handheld scanner, or tap <b>Scan barcode</b> on a phone. Scanning the same item again adds 1 to its quantity.</li>
+      <li>Load your <b>Item list</b> (CSV or Excel) so names fill in automatically.</li>
+      <li>Tap <b>Excel</b> or <b>CSV</b> to send the sheet to your laptop.</li>
+    </ol>
+  </div>
+</div>
+
+<nav class="bar" aria-label="Actions">
+  <div class="in">
+    <button type="button" id="bXlsx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8l4 5m0-5l-4 5M14 9h3M14 13h3M8 17h9"/></svg>Excel</button>
+    <button type="button" id="bCsv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 15h7M9 18h4"/></svg>CSV</button>
+    <button type="button" id="bItems"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/></svg>Item list</button>
+    <button type="button" id="bMore"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>More</button>
+  </div>
+</nav>
+
+<input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="listIn" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+<div id="layer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inArtifact=!!(window.claude&&typeof window.claude.use==="function");
+const LS="stockroom.v1.";
+function lsGet(k,d){try{const v=localStorage.getItem(LS+k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+
+/* ---------- state ---------- */
+const S={rows:lsGet("rows",{}),catalog:lsGet("catalog",{items:[],file:"",at:0}),learned:lsGet("learned",{}),lastKey:null,loc:lsGet("loc",""),fLoc:"__all",q:""};
+let catIndex=new Map();
+
+function fnv(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)}return(h>>>0).toString(36)}
+const locKey=l=>(l||"").trim().toLowerCase();
+const rowKey=(code,loc)=>"r"+fnv(code+"|"+locKey(loc))+fnv(locKey(loc)+"|"+code);
+const stripZ=c=>/^\d+$/.test(c)?c.replace(/^0+/,""):null;
+
+function buildIndex(){
+  catIndex=new Map();
+  const put=(k,n)=>{if(!k||!n)return;k=String(k).trim();if(!k)return;catIndex.set(k.toLowerCase(),n);const z=stripZ(k);if(z)catIndex.set("#"+z,n)};
+  for(const it of S.catalog.items){put(it.c,it.n);put(it.s,it.n)}
+  for(const [k,n] of Object.entries(S.learned))put(k,n);
+}
+function lookupName(code){
+  const n=catIndex.get(code.toLowerCase());if(n)return n;
+  const z=stripZ(code);if(z){const m=catIndex.get("#"+z);if(m)return m}
+  return "";
+}
+
+/* ---------- storage: account (db) when inside Claude, phone storage otherwise ---------- */
+const Store={db:null,uid:null,dl:null,queues:new Map(),
+  base(){return "data/users/"+this.uid+"/inv"},
+  chain(key,fn){const p=(this.queues.get(key)||Promise.resolve()).then(fn).catch(e=>{console.warn(e);setSync("err")});this.queues.set(key,p);return p},
+  saveRow(r){lsSet("rows",S.rows);if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+r.k);const data={...r};this.chain(r.k,()=>ref.set(data))},
+  delRow(k){lsSet("rows",S.rows);if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+k);this.chain(k,()=>ref.delete())},
+  saveLearned(){lsSet("learned",S.learned);if(!this.db)return;const ref=this.db.doc(this.base()+"/catalog/learned");const map={...S.learned};this.chain("learned",()=>ref.set({map}))},
+  async saveCatalog(){
+    lsSet("catalog",S.catalog);if(!this.db)return;
+    const col=this.base()+"/catalog/";const CH=1200,items=S.catalog.items;const n=Math.ceil(items.length/CH);
+    let old=0;try{const m=await this.db.doc(col+"meta").get();if(m.exists)old=(m.data().chunks|0)}catch(e){}
+    for(let i=0;i<n;i++){await this.db.doc(col+"c"+i).set({items:items.slice(i*CH,(i+1)*CH)})}
+    await this.db.doc(col+"meta").set({chunks:n,file:S.catalog.file,at:S.catalog.at,count:items.length});
+    for(let i=n;i<old;i++){try{await this.db.doc(col+"c"+i).delete()}catch(e){}}
+  },
+  async loadCloud(){
+    const b=this.base();
+    const snap=await this.db.collection(b+"/scans").get();
+    const rows={};snap.docs.forEach(d=>{const v=d.data();if(v&&v.code)rows[d.id]=v});
+    // First open on this account but phone already has scans: push them up instead of losing them.
+    const localOnly=Object.values(S.rows).filter(r=>!rows[r.k]);
+    if(snap.empty&&localOnly.length){localOnly.forEach(r=>this.saveRow(r))}else{S.rows=rows}
+    const m=await this.db.doc(b+"/catalog/meta").get();
+    if(m.exists){const md=m.data();const items=[];for(let i=0;i<(md.chunks|0);i++){const c=await this.db.doc(b+"/catalog/c"+i).get();if(c.exists)items.push(...(c.data().items||[]))}
+      S.catalog={items,file:md.file||"",at:md.at||0}}
+    else if(S.catalog.items.length){this.saveCatalog()}
+    const l=await this.db.doc(b+"/catalog/learned").get();
+    if(l.exists)S.learned={...S.learned,...(l.data().map||{})};
+    lsSet("rows",S.rows);lsSet("catalog",S.catalog);lsSet("learned",S.learned);
+  },
+  async init(){
+    if(!inArtifact)return;
+    try{
+      const [db,user,dl]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("downloads")]);
+      this.dl=dl;
+      if(db&&user){const id=await user.id();if(id){this.db=db;this.uid=id;setSync("loading");await this.loadCloud();setSync("cloud");buildIndex();render();return}}
+    }catch(e){console.warn(e)}
+    setSync("local");
+  }
+};
+function setSync(m){const el=$("#sync");el.className="sync "+(m==="cloud"?"cloud":"local");
+  el.textContent=m==="cloud"?"Saved to your account":m==="loading"?"Loading…":m==="err"?"Not saved – check connection":"On this phone"}
+
+/* ---------- symbology names ---------- */
+const FMT={UPC_A:"UPC-A",UPC_E:"UPC-E",EAN_13:"EAN-13",EAN_8:"EAN-8",CODE_128:"Code 128",CODE_39:"Code 39",CODE_93:"Code 93",ITF:"ITF",CODABAR:"Codabar",QR_CODE:"QR",DATA_MATRIX:"Data Matrix",PDF_417:"PDF417",
+  upc_a:"UPC-A",upc_e:"UPC-E",ean_13:"EAN-13",ean_8:"EAN-8",code_128:"Code 128",code_39:"Code 39",code_93:"Code 93",itf:"ITF",codabar:"Codabar",qr_code:"QR",data_matrix:"Data Matrix",pdf417:"PDF417"};
+function guessFmt(c,fb){if(/^\d{12}$/.test(c))return"UPC-A";if(/^\d{13}$/.test(c))return"EAN-13";if(/^\d{8}$/.test(c))return"EAN-8";if(/^97[89]\d{10}$/.test(c))return"ISBN";return fb||"Typed"}
+
+/* ---------- adding scans ---------- */
+let audio=null;
+function beep(ok=true){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=ok?1760:330;g.gain.setValueAtTime(.12,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+(ok?.12:.3));o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+.32)}catch(e){}}
+
+function addScan(code,fmt){
+  code=String(code||"").trim().replace(/[\r\n\t]/g,"");if(!code)return null;
+  const loc=($("#loc").value||"").trim();const k=rowKey(code,loc);const now=Date.now();
+  let r=S.rows[k];
+  if(r){r.qty+=1;r.last=now;if(!r.name){r.name=lookupName(code)}}
+  else{r={k,code,fmt:fmt||guessFmt(code),name:lookupName(code),qty:1,loc,notes:"",first:now,last:now};S.rows[k]=r}
+  const cached=LK.cache[r.code];
+  if(cached&&cached.hit&&applyInfo(r,cached,false)){/* filled from earlier lookup */}
+  S.lastKey=k;Store.saveRow(r);render(k);
+  if(autoNeeds(r))LK.queue(r.code,false);
+  return r;
+}
+
+/* ---------- live online lookup (name, brand, category, photo link) ----------
+   Runs only where the browser may reach outside sites (your own web address, not inside the Claude app).
+   Sources are tried in order; the first hit wins and is cached on this device. */
+const isUPC=c=>/^\d{8,14}$/.test(c);
+const OFF=(host,label)=>({id:host.split(".")[1],label,
+  url:c=>"https://"+host+"/api/v2/product/"+c+".json?fields=product_name,generic_name,brands,categories,image_front_url,image_url",
+  parse:j=>{if(!j||j.status!==1||!j.product)return null;const p=j.product;const name=(p.product_name||p.generic_name||"").trim();
+    if(!name&&!p.brands)return null;return{name,brand:String(p.brands||"").split(",")[0].trim(),cat:String(p.categories||"").split(",").map(s=>s.trim()).filter(Boolean).pop()||"",img:p.image_front_url||p.image_url||""}}});
+const SOURCES=[
+  {id:"upcitemdb",label:"UPCitemdb",
+   url:c=>"https://api.upcitemdb.com/prod/trial/lookup?upc="+c,
+   parse:j=>{const it=j&&j.items&&j.items[0];if(!it)return null;const imgs=(it.images||[]).filter(Boolean);
+     return{name:(it.title||"").trim(),brand:(it.brand||"").trim(),cat:String(it.category||"").split(">").map(s=>s.trim()).filter(Boolean).pop()||"",img:imgs.find(u=>/^https:/.test(u))||imgs[0]||""}}},
+  OFF("world.openproductsfacts.org","Open Products Facts"),
+  OFF("world.openfoodfacts.org","Open Food Facts"),
+  OFF("world.openbeautyfacts.org","Open Beauty Facts")
+];
+const LK={on:lsGet("lookup",true),cache:lsGet("lkcache",{}),state:{},cool:{},q:[],running:false,last:null,blocked:false,
+  why(){if(!this.on)return"off";if(inArtifact||this.blocked)return"blocked";if(navigator.onLine===false)return"offline";return"ready"},
+  ready(){return this.why()==="ready"},
+  queue(code,force){if(!isUPC(code)||!this.ready())return;
+    const c=this.cache[code];if(!force&&c&&(c.hit||Date.now()-c.at<7*864e5))return;
+    if(this.q.includes(code)||this.state[code]==="busy")return;this.q.push(code);this.state[code]="wait";this.pump()},
+  async pump(){if(this.running)return;this.running=true;
+    while(this.q.length&&this.ready()){const code=this.q.shift();this.state[code]="busy";paintLookup();
+      const res=await lookupOnline(code);
+      if(res.hit){this.cache[code]={hit:true,...res.info,src:res.src,at:Date.now()};this.state[code]="found";
+        let n=0;for(const r of Object.values(S.rows)){if(r.code===code&&applyInfo(r,res.info,false)){Store.saveRow(r);n++}}
+        if(n)render();}
+      else if(res.allFailed){this.state[code]="error";}
+      else{this.cache[code]={hit:false,at:Date.now()};this.state[code]="none"}
+      this.last={code,...res,at:Date.now()};trimCache();lsSet("lkcache",this.cache);paintLookup();
+      await new Promise(r=>setTimeout(r,350));}
+    this.running=false;paintLookup()}
+};
+function trimCache(){const ks=Object.keys(LK.cache);if(ks.length<=4000)return;ks.sort((a,b)=>LK.cache[a].at-LK.cache[b].at).slice(0,ks.length-4000).forEach(k=>delete LK.cache[k])}
+const needsInfo=r=>isUPC(r.code)&&(!r.name||!r.brand||!r.cat||!r.img);
+function applyInfo(r,info,force){let ch=false;
+  for(const [f,v] of [["name",info.name],["brand",info.brand],["cat",info.cat],["img",info.img]]){if(v&&(force||!r[f])&&r[f]!==v){r[f]=v;ch=true}}
+  return ch}
+async function fetchJSON(url){const ac=new AbortController();const t=setTimeout(()=>ac.abort(),7000);
+  try{const res=await fetch(url,{signal:ac.signal,headers:{Accept:"application/json"}});
+    if(res.status===404)return{notFound:true};
+    if(res.status===429)return{limit:true};
+    if(!res.ok)return{error:"HTTP "+res.status};
+    return{json:await res.json()}}
+  catch(e){return{error:e.name==="AbortError"?"timed out":"unreachable"}}
+  finally{clearTimeout(t)}}
+async function lookupOnline(code){
+  const tried=[];let answered=0;
+  for(const s of SOURCES){
+    if(LK.cool[s.id]&&LK.cool[s.id]>Date.now()){tried.push({src:s.label,result:"paused (daily limit)"});continue}
+    const r=await fetchJSON(s.url(code));
+    if(r.limit){LK.cool[s.id]=Date.now()+3600e3;tried.push({src:s.label,result:"daily limit reached"});continue}
+    if(r.error){tried.push({src:s.label,result:r.error});continue}
+    answered++;
+    const info=r.json?s.parse(r.json):null;
+    if(info&&(info.name||info.brand)){tried.push({src:s.label,result:"found"});return{hit:true,info,src:s.label,tried}}
+    tried.push({src:s.label,result:"not found"});
+  }
+  return{hit:false,allFailed:answered===0,tried};
+}
+function lookupNote(r){
+  if(!r||!isUPC(r.code))return"";
+  const st=LK.state[r.code],c=LK.cache[r.code],why=LK.why();
+  if(st==="wait"||st==="busy")return'<span class="lk busy">Looking up online…</span>';
+  if(c&&c.hit)return'<span class="lk ok">Info from '+esc(c.src)+'</span>';
+  if(st==="error")return'<span class="lk warn">Lookup services unreachable</span>';
+  if(c&&!c.hit)return'<span class="lk">Not found online</span>';
+  if(!needsInfo(r))return"";
+  if(why==="offline")return'<span class="lk warn">Offline: will look up when back online</span>';
+  return"";
+}
+function paintLookup(){const r=S.rows[S.lastKey];
+  if(r){const a=document.activeElement;if(a&&a.id==="nameNow"){const n=$("#lkNote");if(n)n.innerHTML=lookupNote(r)}else renderLast()}
+  const chip=$("#lkChip");if(chip)lkChip(chip)}
+const autoNeeds=r=>isUPC(r.code)&&(!r.name||!r.brand);
+function lkChip(el){const w=LK.why();const busy=LK.q.length+(LK.running?1:0);
+  el.className="sync lkchip "+(w==="ready"?"cloud":"local");
+  el.textContent=w==="ready"?(busy&&LK.running?"Looking up…"+(LK.q.length?" ("+(LK.q.length+1)+")":""):"Lookup on"):w==="offline"?"Offline":w==="off"?"Lookup off":"Lookup unavailable";
+  el.hidden=inArtifact}
+function catchUp(){if(!LK.ready())return;for(const r of Object.values(S.rows)){if(autoNeeds(r))LK.queue(r.code,false)}}
+window.addEventListener("online",()=>{paintLookup();catchUp();toast("Back online. Looking up items missing info.")});
+window.addEventListener("offline",()=>{paintLookup()});
+
+/* ---------- barcode decoding ---------- */
+const Z=window.ZXing;
+const ZFORMATS=Z?["UPC_A","UPC_E","EAN_13","EAN_8","CODE_128","CODE_39","CODE_93","ITF","CODABAR","QR_CODE","DATA_MATRIX"].map(n=>Z.BarcodeFormat[n]).filter(v=>v!==undefined):[];
+function decodeCanvas(cv,hard){
+  if(!Z)return null;
+  const ctx=cv.getContext("2d",{willReadFrequently:true});const w=cv.width,h=cv.height;const d=ctx.getImageData(0,0,w,h).data;
+  const lum=new Uint8ClampedArray(w*h);for(let i=0,j=0;i<lum.length;i++,j+=4)lum[i]=(d[j]*306+d[j+1]*601+d[j+2]*117)>>10;
+  const hints=new Map();hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,ZFORMATS);if(hard)hints.set(Z.DecodeHintType.TRY_HARDER,true);
+  const reader=new Z.MultiFormatReader();
+  for(const B of [Z.HybridBinarizer,Z.GlobalHistogramBinarizer]){
+    if(!B)continue;
+    try{const res=reader.decode(new Z.BinaryBitmap(new B(new Z.RGBLuminanceSource(lum,w,h))),hints);
+      return{text:res.getText(),fmt:FMT[Z.BarcodeFormat[res.getBarcodeFormat()]]||""}}catch(e){}
+    if(!hard)break;
+  }
+  return null;
+}
+function drawTo(src,sw,sh,maxDim,rot){
+  const sc=Math.min(1,maxDim/Math.max(sw,sh));const w=Math.round(sw*sc),h=Math.round(sh*sc);
+  const cv=document.createElement("canvas");const ctx=cv.getContext("2d",{willReadFrequently:true});
+  if(rot){cv.width=h;cv.height=w;ctx.translate(h/2,w/2);ctx.rotate(Math.PI/2);ctx.drawImage(src,-w/2,-h/2,w,h)}
+  else{cv.width=w;cv.height=h;ctx.drawImage(src,0,0,w,h)}
+  return cv;
+}
+async function loadImage(file){
+  if(window.createImageBitmap){try{return await createImageBitmap(file)}catch(e){}}
+  return await new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{res(im)};im.onerror=rej;im.src=u});
+}
+async function decodePhoto(file){
+  const img=await loadImage(file);const sw=img.width||img.naturalWidth,sh=img.height||img.naturalHeight;
+  if("BarcodeDetector" in window){try{const bd=new BarcodeDetector();const f=await bd.detect(img);if(f&&f[0])return{text:f[0].rawValue,fmt:FMT[f[0].format]||""}}catch(e){}}
+  for(const [dim,rot] of [[1400,0],[1000,0],[2200,0],[1400,1],[800,0],[2200,1]]){
+    await new Promise(r=>setTimeout(r,0));
+    const r=decodeCanvas(drawTo(img,sw,sh,dim,rot),true);if(r)return r;
+  }
+  return null;
+}
+
+/* ---------- live camera (works when the page is hosted on its own https site) ---------- */
+const liveOK=!inArtifact&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)&&window.isSecureContext;
+let cam=null;
+async function openLive(){
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false})}
+  catch(e){toast("Camera blocked. Using photo mode instead.");$("#photoIn").click();return}
+  const wrap=document.createElement("div");wrap.className="cam";
+  wrap.innerHTML='<video playsinline muted autoplay></video><div class="reticle"></div><div class="camtop"><span>'+esc($("#loc").value||"No location set")+'</span><button class="btn" type="button" data-x="torch" hidden>Light</button></div><div class="cambot"><div class="camlast">Hold a barcode inside the box</div><button class="done" type="button" data-x="done">Done</button></div>';
+  document.body.append(wrap);
+  const v=wrap.querySelector("video");v.srcObject=stream;try{await v.play()}catch(e){}
+  const track=stream.getVideoTracks()[0];let torch=false;
+  try{if(track.getCapabilities&&track.getCapabilities().torch){const tb=wrap.querySelector('[data-x="torch"]');tb.hidden=false;tb.onclick=()=>{torch=!torch;track.applyConstraints({advanced:[{torch}]}).catch(()=>{})}}}catch(e){}
+  const bd=("BarcodeDetector" in window)?new BarcodeDetector():null;
+  let lastCode="",lastAt=0,busy=false,alive=true;
+  const cv=document.createElement("canvas");
+  async function tick(){
+    if(!alive)return;
+    if(!busy&&v.videoWidth){busy=true;
+      try{
+        let hit=null;const vw=v.videoWidth,vh=v.videoHeight;
+        if(bd){try{const f=await bd.detect(v);if(f&&f[0])hit={text:f[0].rawValue,fmt:FMT[f[0].format]||""}}catch(e){}}
+        if(!hit){const cw=Math.round(vw*.9),ch=Math.round(vh*.4),sc=Math.min(1,960/cw);cv.width=Math.round(cw*sc);cv.height=Math.round(ch*sc);
+          cv.getContext("2d",{willReadFrequently:true}).drawImage(v,(vw-cw)/2,(vh-ch)/2,cw,ch,0,0,cv.width,cv.height);hit=decodeCanvas(cv,false)}
+        if(hit){const now=Date.now();if(hit.text!==lastCode||now-lastAt>2500){lastCode=hit.text;lastAt=now;const r=addScan(hit.text,hit.fmt);beep(true);
+          wrap.classList.add("hit");setTimeout(()=>wrap.classList.remove("hit"),400);
+          wrap.querySelector(".camlast").innerHTML='<b>'+esc(hit.text)+'</b> · qty '+r.qty+(r.name?' · '+esc(r.name):'')}}
+      }finally{busy=false}}
+    setTimeout(tick,140);
+  }
+  tick();
+  wrap.querySelector('[data-x="done"]').onclick=()=>{alive=false;stream.getTracks().forEach(t=>t.stop());wrap.remove();cam=null};
+  cam=wrap;
+}
+
+/* ---------- rendering ---------- */
+const fmtTime=t=>{const d=new Date(t);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})};
+function locations(){const m=new Map();for(const r of Object.values(S.rows)){const k=locKey(r.loc);if(!m.has(k))m.set(k,r.loc||"")}return[...m.values()].sort((a,b)=>a.localeCompare(b))}
+function viewRows(){
+  const q=S.q.trim().toLowerCase();
+  return Object.values(S.rows).filter(r=>(S.fLoc==="__all"||locKey(r.loc)===S.fLoc)&&(!q||(r.code+" "+r.name+" "+r.notes+" "+r.loc).toLowerCase().includes(q))).sort((a,b)=>b.last-a.last);
+}
+function render(flashKey){
+  const all=Object.values(S.rows);const locs=locations();
+  $("#locs").innerHTML=locs.filter(Boolean).map(l=>'<option value="'+esc(l)+'">').join("");
+  const fl=$("#fLoc");const keys=new Set(locs.map(locKey));if(S.fLoc!=="__all"&&!keys.has(S.fLoc))S.fLoc="__all";
+  fl.innerHTML='<option value="__all">All locations</option>'+locs.map(l=>'<option value="'+esc(locKey(l))+'">'+esc(l||"(no location)")+'</option>').join("");fl.value=S.fLoc;
+  const vr=viewRows();const units=vr.reduce((s,r)=>s+r.qty,0);
+  $("#totals").textContent=all.length?vr.length.toLocaleString()+" items · "+units.toLocaleString()+" units":"";
+  $("#filters").hidden=!all.length;$("#empty").hidden=!!all.length;
+  const ul=$("#rows");ul.hidden=!vr.length;
+  ul.innerHTML=vr.map(r=>'<li data-k="'+r.k+'"'+(r.k===flashKey?' class="flash"':'')+'><button class="rowbtn" type="button" aria-label="Edit '+esc(r.name||r.code)+'"><span class="r-name'+(r.name?'':' missing')+'">'+esc(r.name||"No name yet")+'</span><span class="r-qty">'+r.qty+'<small>qty</small></span><span class="r-meta"><span class="code">'+esc(r.code)+'</span>'+(r.brand?'<span>'+esc(r.brand)+'</span>':'')+(r.loc?'<span>'+esc(r.loc)+'</span>':'')+(r.notes?'<span>“'+esc(r.notes)+'”</span>':'')+'<span>'+fmtTime(r.last)+'</span></span></button></li>').join("");
+  renderLast();
+  $("#bXlsx").disabled=$("#bCsv").disabled=!vr.length;
+}
+function renderLast(){
+  const el=$("#last");const r=S.rows[S.lastKey];if(!r){el.hidden=true;return}
+  el.hidden=false;
+  const sub=[r.brand,r.cat].filter(Boolean).map(esc).join(" · ");
+  const busy=LK.state[r.code]==="wait"||LK.state[r.code]==="busy";
+  el.innerHTML='<div class="eyebrow">Last scan'+(r.loc?' · '+esc(r.loc):'')+'</div>'+
+    '<div class="lastbody">'+(r.img&&!inArtifact?'<img class="thumb" src="'+esc(r.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
+    '<div class="txt"><div class="nm'+(r.name?'':' missing')+'">'+esc(r.name||(busy?"Looking up…":"Not in your item list"))+'</div>'+
+    (sub?'<div class="sub">'+sub+'</div>':'')+
+    '<div class="codeline"><span>'+esc(r.code)+'</span><span class="tag">'+esc(r.fmt||"")+'</span><span id="lkNote">'+lookupNote(r)+'</span></div></div></div>'+
+    (r.name?'':'<form class="namefix" data-x="namefix"><label class="sr" for="nameNow">Name for this barcode</label><input class="field" id="nameNow" placeholder="Type the item name" autocomplete="off"><button class="btn" type="submit">Save</button></form>')+
+    '<div class="qtyctl"><button type="button" data-x="dec" aria-label="Minus one">−</button><output aria-label="Quantity">'+r.qty+'</output><button type="button" data-x="inc" aria-label="Plus one">+</button><span class="grow"></span><button class="btn" type="button" data-x="edit">Edit</button></div>';
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html,bind){
+  const layer=$("#layer");layer.innerHTML='<div class="scrim" data-x="scrim"><div class="sheet" role="dialog" aria-modal="true">'+html+'</div></div>';
+  const scrim=layer.firstChild;scrim.addEventListener("click",e=>{if(e.target===scrim)closeSheet()});
+  bind&&bind(scrim.firstChild);const f=scrim.querySelector("input,select,button");f&&f.focus({preventScroll:true});
+}
+function closeSheet(){$("#layer").innerHTML=""}
+function armButton(btn,label,fn){btn.addEventListener("click",()=>{if(btn.classList.contains("armed")){fn()}else{btn.classList.add("armed");const o=btn.textContent;btn.textContent=label;setTimeout(()=>{if(btn.isConnected){btn.classList.remove("armed");btn.textContent=o}},4000)}})}
+
+function openEdit(k){
+  const r=S.rows[k];if(!r)return;
+  openSheet('<h3>Edit item</h3>'+
+   '<div class="codeline"><span>'+esc(r.code)+'</span><span class="tag">'+esc(r.fmt||"")+'</span></div>'+
+   '<div><label class="lbl" for="eName">Name / nomenclature</label><input class="field" id="eName" value="'+esc(r.name)+'" autocomplete="off"></div>'+
+   '<div><label class="lbl" for="eQty">Quantity</label><div class="qtyctl"><button type="button" data-x="d">−</button><input id="eQty" type="number" inputmode="numeric" min="0" step="1" value="'+r.qty+'"><button type="button" data-x="i">+</button></div></div>'+
+   '<div><label class="lbl" for="eLoc">Location / bin</label><input class="field" id="eLoc" list="locs" value="'+esc(r.loc)+'" autocomplete="off"></div>'+
+   '<div class="row2"><div><label class="lbl" for="eBrand">Brand</label><input class="field" id="eBrand" value="'+esc(r.brand)+'" autocomplete="off"></div><div><label class="lbl" for="eCat">Category</label><input class="field" id="eCat" value="'+esc(r.cat)+'" autocomplete="off"></div></div>'+
+   '<div><label class="lbl" for="eImg">Photo link</label><input class="field" id="eImg" type="url" inputmode="url" value="'+esc(r.img)+'" placeholder="https://…" autocomplete="off"></div>'+
+   (r.img&&!inArtifact?'<img class="photo" id="ePhoto" src="'+esc(r.img)+'" alt="Product photo" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
+   '<div><label class="lbl" for="eNotes">Notes</label><textarea class="field" id="eNotes">'+esc(r.notes)+'</textarea></div>'+
+   (isUPC(r.code)?'<div class="actions"><button class="btn" type="button" data-x="lookup"'+(LK.ready()?'':' disabled')+'>Look up online</button><span class="kv" id="eLkMsg">'+(LK.ready()?'Fills empty fields. Your own entries are kept.':LK.why()==="offline"?'Offline right now.':LK.why()==="off"?'Online lookup is turned off in More.':'Online lookup works when the app runs from its own web address.')+'</span></div>':'')+
+   '<p class="kv">First scanned <b>'+fmtTime(r.first)+'</b> · last <b>'+fmtTime(r.last)+'</b></p>'+
+   '<div class="actions"><button class="btn danger" type="button" data-x="del">Delete</button><button class="btn" type="button" data-x="cancel">Cancel</button><button class="btn primary grow" type="button" data-x="save">Save</button></div>',
+  sh=>{
+    const q=sh.querySelector("#eQty");
+    sh.querySelector('[data-x="d"]').onclick=()=>{q.value=Math.max(0,(parseInt(q.value)||0)-1)};
+    sh.querySelector('[data-x="i"]').onclick=()=>{q.value=(parseInt(q.value)||0)+1};
+    sh.querySelector('[data-x="cancel"]').onclick=closeSheet;
+    const lb=sh.querySelector('[data-x="lookup"]');
+    if(lb)lb.onclick=async()=>{lb.disabled=true;const msg=sh.querySelector("#eLkMsg");msg.textContent="Looking up…";
+      const res=await lookupOnline(r.code);LK.last={code:r.code,...res,at:Date.now()};
+      if(res.hit){LK.cache[r.code]={hit:true,...res.info,src:res.src,at:Date.now()};lsSet("lkcache",LK.cache);
+        let n=0;for(const [id,f] of [["eName","name"],["eBrand","brand"],["eCat","cat"],["eImg","img"]]){const inp=sh.querySelector("#"+id);if(inp&&!inp.value.trim()&&res.info[f]){inp.value=res.info[f];n++}}
+        msg.textContent=n?"Filled "+n+" field"+(n>1?"s":"")+" from "+res.src+". Tap Save to keep.":"Found on "+res.src+", but your fields are already filled.";}
+      else msg.textContent=res.allFailed?"Lookup services unreachable. Check your connection.":"Not found in any lookup service.";
+      lb.disabled=false};
+    armButton(sh.querySelector('[data-x="del"]'),"Tap again to delete",()=>{delete S.rows[k];Store.delRow(k);if(S.lastKey===k)S.lastKey=null;closeSheet();render();toast("Deleted "+(r.name||r.code))});
+    sh.querySelector('[data-x="save"]').onclick=()=>{
+      const name=sh.querySelector("#eName").value.trim(),qty=Math.max(0,parseInt(q.value)||0),loc=sh.querySelector("#eLoc").value.trim(),notes=sh.querySelector("#eNotes").value.trim();
+      const brand=sh.querySelector("#eBrand").value.trim(),cat=sh.querySelector("#eCat").value.trim(),img=sh.querySelector("#eImg").value.trim();
+      if(name&&name!==r.name){S.learned[r.code]=name;Store.saveLearned();buildIndex()}
+      const nk=rowKey(r.code,loc);
+      if(nk!==k&&S.rows[nk]){const t=S.rows[nk];t.qty+=qty;t.last=Math.max(t.last,r.last);t.first=Math.min(t.first,r.first);if(name)t.name=name;if(brand)t.brand=brand;if(cat)t.cat=cat;if(img)t.img=img;if(notes)t.notes=t.notes?t.notes+"; "+notes:notes;delete S.rows[k];Store.delRow(k);Store.saveRow(t);S.lastKey=S.lastKey===k?nk:S.lastKey;toast("Merged into the existing row at "+(loc||"no location"))}
+      else{const u={...r,k:nk,name,brand,cat,img,qty,loc,notes};if(nk!==k){delete S.rows[k];Store.delRow(k);if(S.lastKey===k)S.lastKey=nk}S.rows[nk]=u;Store.saveRow(u)}
+      closeSheet();render(nk);
+    };
+  });
+}
+
+let pendingList=null;
+function openItems(){
+  const c=S.catalog;const learnedN=Object.keys(S.learned).length;
+  openSheet('<h3>Item list</h3>'+
+   '<p class="kv">'+(c.items.length?'<b>'+c.items.length.toLocaleString()+'</b> items loaded from <b>'+esc(c.file)+'</b> ('+new Date(c.at).toLocaleDateString()+')':'No item list loaded yet.')+(learnedN?' · <b>'+learnedN+'</b> names you typed are remembered.':'')+'</p>'+
+   '<p class="hint">Pick a CSV or Excel export of your items. You\'ll choose which column holds the barcode and which holds the name. Loading a new list replaces the old one; names you typed are kept.</p>'+
+   '<div id="mapArea"></div>'+
+   '<div class="actions"><button class="btn" type="button" data-x="cancel">Close</button><button class="btn primary grow" type="button" data-x="pick">Choose file…</button></div>',
+  sh=>{sh.querySelector('[data-x="cancel"]').onclick=closeSheet;sh.querySelector('[data-x="pick"]').onclick=()=>$("#listIn").click()});
+}
+function showMapping(name,aoa){
+  const area=$("#mapArea");if(!area)return;
+  let hi=aoa.findIndex(r=>r.filter(v=>String(v).trim()).length>=2);if(hi<0)hi=0;
+  const head=aoa[hi].map((h,i)=>String(h).trim()||("Column "+(i+1)));
+  const find=(re,not)=>head.findIndex((h,i)=>re.test(h)&&!not.includes(i));
+  let ci=find(/upc|ean|gtin|bar ?code/i,[]);if(ci<0)ci=find(/sku|item ?(no|num|#)|code|part/i,[]);if(ci<0)ci=0;
+  let si=find(/sku|item ?(no|num|#)|style|part/i,[ci]);
+  let ni=find(/name|desc|title|nomenclature|product/i,[ci,si]);if(ni<0)ni=head.length>1?(ci===0?1:0):0;
+  const opts=sel=>head.map((h,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+esc(h)+'</option>').join("");
+  pendingList={name,aoa,hi};
+  area.innerHTML='<div style="display:grid;gap:10px"><p class="kv">File: <b>'+esc(name)+'</b> · '+(aoa.length-hi-1).toLocaleString()+' rows</p>'+
+   '<div><label class="lbl" for="mCode">Barcode column</label><select class="field" id="mCode">'+opts(ci)+'</select></div>'+
+   '<div><label class="lbl" for="mSku">Also match on (optional, e.g. SKU)</label><select class="field" id="mSku"><option value="-1">None</option>'+opts(si)+'</select></div>'+
+   '<div><label class="lbl" for="mName">Name column</label><select class="field" id="mName">'+opts(ni)+'</select></div>'+
+   '<button class="btn primary" type="button" id="mGo">Load '+(aoa.length-hi-1).toLocaleString()+' items</button></div>';
+  $("#mGo").onclick=async()=>{
+    const c=+$("#mCode").value,s=+$("#mSku").value,n=+$("#mName").value;const items=[];
+    const cell=v=>typeof v==="number"?String(Math.round(v)):String(v??"").trim();
+    for(const row of pendingList.aoa.slice(pendingList.hi+1)){const code=cell(row[c]),sku=s>=0?cell(row[s]):"",nm=cell(row[n]);if((code||sku)&&nm)items.push(sku&&sku!==code?{c:code,s:sku,n:nm}:{c:code,n:nm})}
+    if(!items.length){toast("No rows had both a code and a name. Check the columns.");return}
+    S.catalog={items,file:pendingList.name,at:Date.now()};buildIndex();
+    let filled=0;for(const r of Object.values(S.rows)){if(!r.name){const nm=lookupName(r.code);if(nm){r.name=nm;filled++;Store.saveRow(r)}}}
+    showBusy("Saving item list…");try{await Store.saveCatalog()}catch(e){toast("Item list loaded on this phone, but couldn't be saved to your account.")}finally{hideBusy()}
+    closeSheet();render();toast(items.length.toLocaleString()+" items loaded"+(filled?" · "+filled+" scans got names":""));
+  };
+}
+
+function openMore(){
+  const n=Object.keys(S.rows).length;
+  openSheet('<h3>More</h3>'+
+   '<div class="kv">'+(Store.db?'Scans are <b>saved to your Claude account</b>, so they come back when you reopen this page on any device.':'Scans are <b>saved on this phone</b> in this browser. Export regularly so nothing is lost if Safari clears site data.')+'</div>'+
+   '<label class="switch" for="wOn"><input type="checkbox" id="wOn"'+(W.on?' checked':'')+'><span>Handheld scanner (USB or wireless)<small>Catch scans anywhere on this page. No need to click into a box first.</small></span></label>'+
+   '<div class="kv">'+(W.lastScan?'Last scanner read: <b>'+esc(W.lastScan.code)+'</b> · '+W.lastScan.ms+' ms per character · ended with '+(W.lastScan.how==="none"?'no Enter key':W.lastScan.how):'No scanner reads yet this session. Scan any barcode to test.')+'</div>'+
+   '<ul class="tips"><li>Plug the scanner\'s USB receiver (or cable) into the laptop. It types like a keyboard, so there is nothing to install.</li><li>Keep this page in front. If the bar at the top turns yellow, click it, then scan.</li><li>If digits come out wrong, set the laptop keyboard layout to <b>US English</b>.</li><li>If short codes don\'t add, turn on the scanner\'s <b>Enter (CR) suffix</b> using the setup barcode in its manual. Codes of 6+ characters work either way.</li></ul>'+
+   '<div class="kv">'+(liveOK?'<b>Live camera</b> is on: point at barcodes and they add continuously.':'<b>Photo mode</b>: on a phone, each tap of Scan opens the camera for one photo.')+'</div>'+
+   lkMoreHtml()+
+   '<div class="actions"><button class="btn danger" type="button" data-x="clear"'+(n?'':' disabled')+'>Clear all '+n+' rows</button><button class="btn primary grow" type="button" data-x="close">Close</button></div>',
+  sh=>{sh.querySelector('[data-x="close"]').onclick=closeSheet;
+    const lo=sh.querySelector("#lkOn");if(lo)lo.onchange=e=>{LK.on=e.target.checked;lsSet("lookup",LK.on);paintLookup();if(LK.on)catchUp();openMore()};
+    const la=sh.querySelector('[data-x="lkall"]');if(la)la.onclick=()=>{let n=0;for(const r of Object.values(S.rows)){if(needsInfo(r)){const c=LK.cache[r.code];if(!(c&&c.hit)){LK.queue(r.code,true);n++}}}toast(n?"Looking up "+n+" item"+(n>1?"s":"")+"…":"Nothing left to look up");closeSheet()};
+    sh.querySelector("#wOn").onchange=e=>{W.on=e.target.checked;lsSet("wedge",W.on);wReset();wStatus()};
+    armButton(sh.querySelector('[data-x="clear"]'),"Tap again: delete all scans",()=>{const ks=Object.keys(S.rows);S.rows={};S.lastKey=null;ks.forEach(k=>Store.delRow(k));closeSheet();render();toast("Count sheet cleared")})});
+}
+
+function lkMoreHtml(){
+  const w=LK.why();const codes=new Set(Object.values(S.rows).filter(r=>needsInfo(r)&&!(LK.cache[r.code]&&LK.cache[r.code].hit)).map(r=>r.code));
+  const status=w==="ready"?'<b>On.</b> New barcodes are looked up automatically.':w==="offline"?'<b>Offline.</b> Items scanned now are looked up when the connection returns.':w==="off"?'<b>Off.</b>':'<b>Not available here.</b> Inside the Claude app the page can\'t reach outside websites. Open the app from its own web address (GitHub Pages) for live lookups.';
+  const L=LK.last;
+  return '<label class="switch" for="lkOn"><input type="checkbox" id="lkOn"'+(LK.on?' checked':'')+(inArtifact?' disabled':'')+'><span>Online lookup<small>Fills name, brand, category and photo link from public barcode databases (UPCitemdb, Open Products Facts, Open Food Facts, Open Beauty Facts). Your item list and names you type always come first.</small></span></label>'+
+   '<div class="kv">'+status+'</div>'+
+   (L?'<div class="kv">Last lookup <b>'+esc(L.code)+'</b>:</div><ul class="lklog">'+L.tried.map(t=>'<li>'+esc(t.src)+': '+esc(t.result)+'</li>').join("")+'</ul>':'')+
+   (w==="ready"&&codes.size?'<div class="actions"><button class="btn" type="button" data-x="lkall">Look up '+codes.size+' item'+(codes.size>1?'s':'')+' missing info</button></div>':'')+
+   '<p class="hint">UPCitemdb\'s free tier allows about 100 lookups a day per connection. Store-made, vendor-only or decor items often aren\'t in public databases; load your vendor item list for those.</p>';
+}
+
+/* ---------- export ---------- */
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())}
+function exportName(ext){const lbl=S.fLoc==="__all"?"all-locations":(locations().find(l=>locKey(l)===S.fLoc)||"no-location");return "inventory_"+lbl.replace(/[^\w-]+/g,"-").replace(/^-|-$/g,"").toLowerCase()+"_"+stamp()+"."+ext}
+const HEAD=["Barcode","Name","Brand","Category","Qty","Location","Notes","Photo link","Barcode type","First scanned","Last scanned"];
+const rowOut=(r,d)=>[r.code,r.name,r.brand||"",r.cat||"",r.qty,r.loc,r.notes,r.img||"",r.fmt,d(r.first),d(r.last)];
+async function exportXlsx(){
+  if(!window.XLSX){toast("The Excel library didn't load. Check your connection and reopen the page.");return}
+  const vr=viewRows();
+  const aoa=[HEAD,...vr.map(r=>rowOut(r,t=>new Date(t)))];
+  const ws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true,dateNF:"yyyy-mm-dd hh:mm"});
+  for(let i=1;i<aoa.length;i++){const a=XLSX.utils.encode_cell({r:i,c:0});if(ws[a]){ws[a].t="s";ws[a].v=String(aoa[i][0]);ws[a].z="@"}}
+  ws["!cols"]=[{wch:16},{wch:42},{wch:18},{wch:20},{wch:6},{wch:20},{wch:30},{wch:40},{wch:12},{wch:17},{wch:17}];
+  for(let i=1;i<aoa.length;i++){const u=aoa[i][7];const a=XLSX.utils.encode_cell({r:i,c:7});if(u&&/^https?:\/\//.test(u)&&ws[a])ws[a].l={Target:u}}
+  ws["!autofilter"]={ref:ws["!ref"]};
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Count");
+  const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  await saveFile(exportName("xlsx"),new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+async function exportCsv(){
+  const q=v=>{v=v==null?"":String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const iso=t=>{const d=new Date(t),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())};
+  const lines=[HEAD.map(q).join(","),...viewRows().map(r=>rowOut(r,iso).map(q).join(","))];
+  await saveFile(exportName("csv"),new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"}));
+}
+async function saveFile(name,blob){
+  if(inArtifact){
+    if(!Store.dl){toast("File export isn't available in this view.");return}
+    try{await Store.dl.save({filename:name,data:blob});toast("Exported "+name)}
+    catch(e){if(e&&e.code==="declined")return;toast(e&&e.code==="rate_limited"?"Finish the open save prompt first.":"Couldn't export the file ("+((e&&e.code)||"error")+").")}
+    return;
+  }
+  try{const f=new File([blob],name,{type:blob.type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}
+  catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000);toast("Downloaded "+name);
+}
+
+/* ---------- small UI helpers ---------- */
+let toastT;function toast(msg){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.append(t)}t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),3200)}
+function showBusy(m){hideBusy();const b=document.createElement("div");b.className="busy";b.textContent=m;document.body.append(b)}
+function hideBusy(){const b=$(".busy");b&&b.remove()}
+
+/* ---------- handheld scanner (keyboard wedge: USB, 2.4 GHz, or Bluetooth) ----------
+   The scanner "types" the barcode very fast, then usually presses Enter.
+   Fast bursts are captured anywhere on the page; if a burst landed in a text box,
+   that box is put back the way it was. Normal typing is left alone. */
+const W={on:lsGet("wedge",true),buf:"",times:[],last:0,snap:null,idle:0,doneAt:0,lastScan:null};
+const W_AVG=50,W_GAP=90,W_MIN=3,W_NOSUFFIX=6,W_IDLE=140;
+const coarse=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+const isField=el=>!!el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT");
+function wFast(){const n=W.times.length-1;return n>=1&&(W.times[n]-W.times[0])/n<=W_AVG}
+function wReset(){W.buf="";W.times=[];W.snap=null;clearTimeout(W.idle)}
+function wFinish(how){
+  const code=W.buf.replace(/[\x00-\x1f]/g,"").trim();const n=W.times.length-1;const ms=n>0?Math.round((W.times[n]-W.times[0])/n):0;
+  const s=W.snap;wReset();W.doneAt=performance.now();
+  if(s&&s.el.isConnected){s.el.value=s.val;try{if(s.ss!=null)s.el.setSelectionRange(s.ss,s.se)}catch(e){}
+    if(s.el.id==="q")s.el.dispatchEvent(new Event("input",{bubbles:true}))}
+  if(!code)return;
+  beepInit();const r=addScan(code,guessFmt(code,"Scanner"));beep(true);
+  W.lastScan={code,at:Date.now(),ms,how};wStatus(true);
+  if(r&&$("#layer").innerHTML)toast("Scanned "+code+" · qty "+r.qty+(r.name?" · "+r.name:""));
+}
+window.addEventListener("keydown",e=>{
+  if(!W.on||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+  const k=e.key,now=performance.now();
+  if(e.repeat){wReset();return}
+  if(k==="Enter"||k==="Tab"){
+    if(W.buf.length>=W_MIN&&wFast()&&now-W.last<W_GAP*2){e.preventDefault();e.stopPropagation();wFinish(k);return}
+    if(!W.buf&&now-W.doneAt<250){e.preventDefault();e.stopPropagation();return}
+    wReset();return;
+  }
+  if(!k||k.length!==1)return;
+  if(!W.buf||now-W.last>W_GAP){
+    wReset();const el=document.activeElement;
+    if(isField(el)){let ss=null,se=null;try{ss=el.selectionStart;se=el.selectionEnd}catch(x){}W.snap={el,val:el.value,ss,se}}
+  }
+  W.buf+=k;W.times.push(now);W.last=now;
+  if(W.buf.length>=W_MIN&&wFast())e.preventDefault();
+  clearTimeout(W.idle);W.idle=setTimeout(()=>{if(W.buf.length>=W_NOSUFFIX&&wFast())wFinish("none");else wReset()},W_IDLE);
+},true);
+let wFlashT;
+function wStatus(got){
+  const el=$("#scanStat");el.hidden=!W.on||(coarse&&!W.lastScan);
+  const focused=document.hasFocus()&&document.visibilityState!=="hidden";
+  el.classList.toggle("idle",!focused);
+  $("#scanStatText").textContent=focused?"Handheld scanner ready":"Click here so scans reach this page";
+  $("#scanStatLast").textContent=W.lastScan?"Last: "+W.lastScan.code+" · "+new Date(W.lastScan.at).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}):"";
+  if(got){el.classList.add("got");clearTimeout(wFlashT);wFlashT=setTimeout(()=>el.classList.remove("got"),450)}
+}
+window.addEventListener("focus",()=>wStatus());window.addEventListener("blur",()=>wStatus());document.addEventListener("visibilitychange",()=>wStatus());
+$("#scanStat").addEventListener("click",e=>{try{window.focus()}catch(x){}e.currentTarget.blur();wStatus()});
+
+/* ---------- events ---------- */
+$("#loc").value=S.loc;
+$("#loc").addEventListener("change",()=>{S.loc=$("#loc").value.trim();lsSet("loc",S.loc)});
+$("#scanLabel").textContent=liveOK?"Start scanning":coarse?"Scan barcode":"Scan from photo";
+$("#modeHint").textContent=!coarse?"Pull the trigger on your handheld scanner. Each read is added here, even if you haven't clicked a box.":liveOK?"Point the camera at barcodes; each one is added as it's read.":"Tap Scan, take a close, steady photo of one barcode, and it's added.";
+$("#scanBtn").addEventListener("click",()=>{beepInit();if(!($("#loc").value||"").trim()){toast("Tip: set a location first so counts stay separated.")}liveOK?openLive():$("#photoIn").click()});
+function beepInit(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume&&audio.resume()}catch(e){}}
+$("#photoIn").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  if(!Z&&!("BarcodeDetector" in window)){toast("The barcode reader didn't load. Check your connection and reopen the page.");return}
+  showBusy("Reading barcode…");
+  try{const r=await decodePhoto(f);hideBusy();
+    if(r){addScan(r.text,r.fmt);beep(true)}else{beep(false);toast("No barcode found. Fill the frame with one barcode, hold steady, and avoid glare.")}}
+  catch(err){hideBusy();toast("Couldn't read that photo. Try again.")}
+});
+$("#manualForm").addEventListener("submit",e=>{e.preventDefault();const v=$("#manual").value.trim();if(!v)return;beepInit();addScan(v,"");$("#manual").value="";beep(true)});
+$("#fLoc").addEventListener("change",e=>{S.fLoc=e.target.value;render()});
+$("#q").addEventListener("input",e=>{S.q=e.target.value;render()});
+$("#rows").addEventListener("click",e=>{const li=e.target.closest("li[data-k]");if(li)openEdit(li.dataset.k)});
+$("#last").addEventListener("click",e=>{const x=e.target.closest("[data-x]");const r=S.rows[S.lastKey];if(!x||!r)return;
+  if(x.dataset.x==="inc"){r.qty++;r.last=Date.now();Store.saveRow(r);render(r.k)}
+  else if(x.dataset.x==="dec"){if(r.qty>0){r.qty--;Store.saveRow(r);render()}}
+  else if(x.dataset.x==="edit"){openEdit(r.k)}});
+$("#last").addEventListener("submit",e=>{e.preventDefault();const r=S.rows[S.lastKey];const v=($("#nameNow")||{}).value;if(!r||!v||!v.trim())return;
+  r.name=v.trim();S.learned[r.code]=r.name;Store.saveLearned();buildIndex();Store.saveRow(r);render(r.k);toast("Name saved for "+r.code)});
+$("#bXlsx").addEventListener("click",exportXlsx);
+$("#bCsv").addEventListener("click",exportCsv);
+$("#bItems").addEventListener("click",openItems);
+$("#bMore").addEventListener("click",openMore);
+$("#listIn").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  if(!window.XLSX){toast("The spreadsheet reader didn't load. Check your connection.");return}
+  try{const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:"array",raw:/\.csv$/i.test(f.name)});const ws=wb.Sheets[wb.SheetNames[0]];
+    const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""}).filter(r=>r.some(v=>String(v).trim()));
+    if(aoa.length<2){toast("That file looks empty.");return}
+    if(!$("#mapArea"))openItems();showMapping(f.name,aoa)}
+  catch(err){toast("Couldn't read that file. Save it as .xlsx or .csv and try again.")}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#layer").innerHTML)closeSheet()}});
+
+buildIndex();render();wStatus();paintLookup();Store.init().then(()=>{render();catchUp()});
+})();
+</script>
+
+</body>
+</html>
