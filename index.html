@@ -74,7 +74,13 @@ textarea.field{min-height:70px;resize:vertical}
 ul.rows{list-style:none;margin:10px 0 0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 ul.rows li{border-top:1px solid var(--line)}
 ul.rows li:first-child{border-top:0}
-ul.rows li button.rowbtn{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:11px 14px;cursor:pointer}
+ul.rows li button.rowbtn{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;padding:11px 14px;cursor:pointer;align-items:center}
+.r-pic{grid-row:span 2;width:46px;height:46px;border-radius:8px;border:1px solid var(--line);background:var(--chip);object-fit:cover;display:grid;place-items:center;color:var(--muted)}
+.r-pic svg{width:20px;height:20px;opacity:.55}
+.phbox{display:grid;gap:8px}
+.phbox .photo{max-height:240px}
+.phbtns{display:flex;flex-wrap:wrap;gap:8px}
+.thumb.own{object-fit:cover;background:var(--chip)}
 ul.rows li button.rowbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .qtyctl .grow{flex:1}
 .r-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
@@ -111,6 +117,10 @@ nav.bar button:active{background:var(--chip)}
 .lk.ok{color:var(--good)} .lk.warn{color:var(--bad)}
 .lk.busy::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);animation:blink 1s steps(2) infinite}
 .photo{max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--line);background:#fff;object-fit:contain;justify-self:start}
+.ghbox{display:grid;gap:10px;border:1px solid var(--line);border-radius:10px;padding:12px}
+.ghbox h4{margin:0;font:700 14px/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em}
+.ghbox a{color:var(--ink)}
+.bad{color:var(--bad)}
 .lklog{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted)}
 .cam{position:fixed;inset:0;z-index:30;background:#000;display:flex;flex-direction:column}
 .cam video{flex:1;width:100%;object-fit:cover;min-height:0}
@@ -211,6 +221,8 @@ nav.bar button:active{background:var(--chip)}
 </nav>
 
 <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="itemTake" accept="image/*" capture="environment" hidden>
+<input type="file" id="itemPick" accept="image/*" hidden>
 <input type="file" id="listIn" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 <div id="layer"></div>
 
@@ -227,7 +239,13 @@ function lsGet(k,d){try{const v=localStorage.getItem(LS+k);return v?JSON.parse(v
 function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
 
 /* ---------- state ---------- */
-const S={rows:lsGet("rows",{}),catalog:lsGet("catalog",{items:[],file:"",at:0}),learned:lsGet("learned",{}),lastKey:null,loc:lsGet("loc",""),fLoc:"__all",q:""};
+const S={rows:lsGet("rows",{}),tomb:lsGet("tomb",{}),catalog:lsGet("catalog",{items:[],file:"",at:0}),learned:lsGet("learned",{}),lastKey:null,loc:lsGet("loc",""),fLoc:"__all",q:""};
+/* Each device owns its own count for a row (r.dev[deviceId]); the row total is the sum.
+   That way counts from the phone and the laptop add up instead of overwriting each other. */
+const ME=(()=>{let id=lsGet("devid","");if(!id){id="d"+Math.random().toString(36).slice(2,10);lsSet("devid",id)}return id})();
+const devSum=r=>Object.values(r.dev||{}).reduce((a,b)=>a+(+b||0),0);
+function adj(r,delta){r.dev=r.dev||{};r.dev[ME]=(+r.dev[ME]||0)+delta;let t=devSum(r);if(t<0){r.dev[ME]-=t;t=0}r.qty=t}
+for(const r of Object.values(S.rows)){if(!r.dev){r.dev={[ME]:r.qty||0}}if(r.ep==null)r.ep=0}
 let catIndex=new Map();
 
 function fnv(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)}return(h>>>0).toString(36)}
@@ -251,11 +269,11 @@ function lookupName(code){
 const Store={db:null,uid:null,dl:null,queues:new Map(),
   base(){return "data/users/"+this.uid+"/inv"},
   chain(key,fn){const p=(this.queues.get(key)||Promise.resolve()).then(fn).catch(e=>{console.warn(e);setSync("err")});this.queues.set(key,p);return p},
-  saveRow(r){lsSet("rows",S.rows);if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+r.k);const data={...r};this.chain(r.k,()=>ref.set(data))},
-  delRow(k){lsSet("rows",S.rows);if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+k);this.chain(k,()=>ref.delete())},
-  saveLearned(){lsSet("learned",S.learned);if(!this.db)return;const ref=this.db.doc(this.base()+"/catalog/learned");const map={...S.learned};this.chain("learned",()=>ref.set({map}))},
+  saveRow(r){lsSet("rows",S.rows);GH.touch();if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+r.k);const data={...r};this.chain(r.k,()=>ref.set(data))},
+  delRow(k){S.tomb[k]={ep:Date.now()};lsSet("tomb",S.tomb);lsSet("rows",S.rows);GH.touch();if(!this.db)return;const ref=this.db.doc(this.base()+"/scans/"+k);this.chain(k,()=>ref.delete())},
+  saveLearned(){lsSet("learned",S.learned);GH.touch();if(!this.db)return;const ref=this.db.doc(this.base()+"/catalog/learned");const map={...S.learned};this.chain("learned",()=>ref.set({map}))},
   async saveCatalog(){
-    lsSet("catalog",S.catalog);if(!this.db)return;
+    lsSet("catalog",S.catalog);GH.touch();if(!this.db)return;
     const col=this.base()+"/catalog/";const CH=1200,items=S.catalog.items;const n=Math.ceil(items.length/CH);
     let old=0;try{const m=await this.db.doc(col+"meta").get();if(m.exists)old=(m.data().chunks|0)}catch(e){}
     for(let i=0;i<n;i++){await this.db.doc(col+"c"+i).set({items:items.slice(i*CH,(i+1)*CH)})}
@@ -275,20 +293,216 @@ const Store={db:null,uid:null,dl:null,queues:new Map(),
     else if(S.catalog.items.length){this.saveCatalog()}
     const l=await this.db.doc(b+"/catalog/learned").get();
     if(l.exists)S.learned={...S.learned,...(l.data().map||{})};
+    try{const ph=await this.db.doc(b+"/catalog/photos").get();
+      if(ph.exists){const rm=ph.data().map||{};for(const [c,e] of Object.entries(rm)){if(!PH.map[c]||(e.at||0)>(PH.map[c].at||0))PH.map[c]=e}lsSet("photos",PH.map)}}catch(e){}
     lsSet("rows",S.rows);lsSet("catalog",S.catalog);lsSet("learned",S.learned);
   },
   async init(){
     if(!inArtifact)return;
     try{
-      const [db,user,dl]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("downloads")]);
-      this.dl=dl;
+      const [db,user,dl,as]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("downloads"),claude.use("assets")]);
+      this.dl=dl;PH.assets=as;
       if(db&&user){const id=await user.id();if(id){this.db=db;this.uid=id;setSync("loading");await this.loadCloud();setSync("cloud");buildIndex();render();return}}
     }catch(e){console.warn(e)}
     setSync("local");
   }
 };
-function setSync(m){const el=$("#sync");el.className="sync "+(m==="cloud"?"cloud":"local");
+function setSync(m){const el=$("#sync");if(GH.enabled())return GH.paint();el.className="sync "+(m==="cloud"?"cloud":"local");
   el.textContent=m==="cloud"?"Saved to your account":m==="loading"?"Loading…":m==="err"?"Not saved – check connection":"On this phone"}
+
+/* ---------- Item photos (one per barcode) ----------
+   Image bytes live in IndexedDB on each device. The shared map (PH.map: code -> {at, path|aid, del})
+   says which photo is current: on GitHub it points at inventory/photos/*.jpg, in the Claude app at an asset id. */
+const PH={map:lsGet("photos",{}),urls:{},assets:null,_db:null,
+  idb(){if(this._db)return this._db;this._db=new Promise((res,rej)=>{try{const q=indexedDB.open("stockroom",1);q.onupgradeneeded=()=>q.result.createObjectStore("photos");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}});return this._db},
+  async tx(mode,fn){const db=await this.idb();return new Promise((res,rej)=>{const t=db.transaction("photos",mode);const st=t.objectStore("photos");const r=fn(st);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error)})},
+  async putLocal(code,rec){try{await this.tx("readwrite",s=>s.put(rec,code))}catch(e){console.warn(e)}},
+  async getLocal(code){try{return await this.tx("readonly",s=>s.get(code))}catch(e){return null}},
+  async delLocal(code){try{await this.tx("readwrite",s=>s.delete(code))}catch(e){}},
+  async loadAll(){try{const db=await this.idb();await new Promise(res=>{const t=db.transaction("photos","readonly");const c=t.objectStore("photos").openCursor();
+      c.onsuccess=()=>{const cur=c.result;if(!cur)return res();const v=cur.value,e=this.map[cur.key];if(v&&v.blob&&!(e&&e.del)){this.urls[cur.key]=URL.createObjectURL(v.blob)}cur.continue()};c.onerror=()=>res()})}catch(e){}},
+  src(code){const e=this.map[code];if(!e||e.del)return null;return this.urls[code]||(e.aid?"/_blob/"+e.aid:null)},
+  link(code){const e=this.map[code];if(!e||e.del)return"";if(e.aid)return location.origin+"/_blob/"+e.aid;
+    if(e.path&&GH.cfg.owner)return"https://github.com/"+GH.cfg.owner+"/"+GH.cfg.repo+"/blob/"+(GH.cfg.branch||"main")+"/"+e.path;return"Saved on device"},
+  async shrink(file){const url=URL.createObjectURL(file);try{const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+      const s=Math.min(1,900/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);return await new Promise(res=>c.toBlob(res,"image/jpeg",0.82))}finally{URL.revokeObjectURL(url)}},
+  saveMap(){lsSet("photos",this.map);GH.touch();if(Store.db){const ref=Store.db.doc(Store.base()+"/catalog/photos");const map={...this.map};Store.chain("photos",()=>ref.set({map}))}},
+  async set(code,file){
+    const blob=await this.shrink(file);if(!blob)throw new Error("Couldn't read that image.");
+    const at=Date.now(),e={at,by:ME};
+    await this.putLocal(code,{blob,at});
+    if(this.urls[code])URL.revokeObjectURL(this.urls[code]);this.urls[code]=URL.createObjectURL(blob);
+    if(Store.db&&this.assets){try{const up=await this.assets.upload(blob,{type:"image/jpeg"});e.aid=up.id}catch(x){console.warn(x);toast("Photo kept on this device; couldn't save it to your account ("+(x&&x.code||"error")+").")}}
+    else if(GH.enabled())e.pending=true;
+    this.map[code]=e;this.saveMap();
+  },
+  async remove(code){
+    const old=this.map[code];this.map[code]={at:Date.now(),del:true,by:ME};
+    if(this.urls[code]){URL.revokeObjectURL(this.urls[code]);delete this.urls[code]}
+    await this.delLocal(code);this.saveMap();
+    if(old&&old.aid&&this.assets){this.assets.delete(old.aid).catch(()=>{})}
+  }
+};
+
+/* ---------- GitHub sync (works on the GitHub Pages / own-web-address version) ----------
+   Data lives in a private repository you own:
+     inventory/scans.json      count sheet (rows, delete markers, names you typed)
+     inventory/item-list.json  your loaded item list
+     inventory/snapshots/*.csv count-sheet copies you save on demand */
+const GH={cfg:lsGet("gh",{owner:"",repo:"",branch:"main",token:"",device:""}),state:"off",msg:"",last:lsGet("ghlast",0),busy:false,again:false,t:0,remoteSha:null,
+  enabled(){const c=this.cfg;return !inArtifact&&!!(c.owner&&c.repo&&c.token)},
+  api(path){return "https://api.github.com/repos/"+encodeURIComponent(this.cfg.owner)+"/"+encodeURIComponent(this.cfg.repo)+path},
+  headers(){return{Authorization:"Bearer "+this.cfg.token,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}},
+  async req(path,opt={}){
+    const res=await fetch(this.api(path),{...opt,headers:{...this.headers(),...(opt.body?{"Content-Type":"application/json"}:{})},cache:"no-store"});
+    let body=null;try{body=await res.json()}catch(e){}
+    return{status:res.status,ok:res.ok,body};
+  },
+  b64bytes(b){let bin="";for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(bin)},
+  async putRaw(p,b64,sha,message){
+    const body={message,content:b64,branch:this.cfg.branch||"main"};if(sha)body.sha=sha;
+    const r=await this.req("/contents/"+p,{method:"PUT",body:JSON.stringify(body)});
+    if(!r.ok&&r.status!==422)throw this.err(r);return r.ok},
+  async getRaw(p){const r=await this.req("/contents/"+p+"?ref="+encodeURIComponent(this.cfg.branch||"main"));if(!r.ok)return null;
+    let c=r.body.content;if(!c&&r.body.sha){const g=await this.req("/git/blobs/"+r.body.sha);if(!g.ok)return null;c=g.body.content}
+    const bin=atob((c||"").replace(/\s/g,""));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:"image/jpeg"})},
+  async syncPhotos(R){
+    // 1) upload photos taken on this device
+    for(const [code,e] of Object.entries(PH.map)){
+      if(!e.pending||e.del)continue;
+      const rec=await PH.getLocal(code);if(!rec||!rec.blob){delete e.pending;continue}
+      const p="inventory/photos/"+code.replace(/[^\w.-]+/g,"_").slice(0,80)+"_"+e.at+".jpg";
+      await this.putRaw(p,this.b64bytes(new Uint8Array(await rec.blob.arrayBuffer())),null,"Photo for "+code+" from "+this.devName());
+      e.path=p;delete e.pending;
+    }
+    // 2) merge the shared photo map (newest wins)
+    const rm=R&&R.photos||{};const merged={...rm};
+    for(const [code,e] of Object.entries(PH.map)){if(!merged[code]||(e.at||0)>(merged[code].at||0))merged[code]=e}
+    // 3) fetch photos taken on other devices
+    let n=0;
+    for(const [code,e] of Object.entries(merged)){
+      if(e.del){if(PH.urls[code]){URL.revokeObjectURL(PH.urls[code]);delete PH.urls[code]}await PH.delLocal(code);continue}
+      if(!e.path||n>=25)continue;
+      const have=await PH.getLocal(code);if(have&&have.at>=e.at)continue;
+      const blob=await this.getRaw(e.path);n++;
+      if(blob){await PH.putLocal(code,{blob,at:e.at});if(PH.urls[code])URL.revokeObjectURL(PH.urls[code]);PH.urls[code]=URL.createObjectURL(blob)}
+    }
+    PH.map=merged;lsSet("photos",PH.map);
+    const shared={};for(const [c,e] of Object.entries(merged)){if(e.pending)continue;shared[c]={...e}}
+    return shared;
+  },
+  b64enc(s){const b=new TextEncoder().encode(s);let bin="";for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(bin)},
+  b64dec(s){const bin=atob(s.replace(/\s/g,""));const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return new TextDecoder().decode(b)},
+  async getFile(p){
+    const r=await this.req("/contents/"+p+"?ref="+encodeURIComponent(this.cfg.branch||"main"));
+    if(r.status===404)return null;
+    if(!r.ok)throw this.err(r);
+    let content=r.body.content;
+    if(!content&&r.body.sha){const g=await this.req("/git/blobs/"+r.body.sha);if(!g.ok)throw this.err(g);content=g.body.content}
+    return{sha:r.body.sha,data:JSON.parse(this.b64dec(content||"")||"null")};
+  },
+  async putFile(p,text,sha,message){
+    const body={message,content:this.b64enc(text),branch:this.cfg.branch||"main"};if(sha)body.sha=sha;
+    const r=await this.req("/contents/"+p,{method:"PUT",body:JSON.stringify(body)});
+    if(r.status===409||r.status===422&&/sha/i.test(JSON.stringify(r.body||{})))return{conflict:true};
+    if(!r.ok)throw this.err(r);
+    return{sha:r.body.content.sha};
+  },
+  err(r){const m=r.body&&r.body.message||"";
+    const e=new Error(r.status===401?"GitHub rejected the token. Paste a new token in More.":r.status===403&&/rate/i.test(m)?"GitHub rate limit reached. Sync will retry shortly.":r.status===403?"The token can't write to this repository. Give it Contents: Read and write.":r.status===404?"Repository not found, or the token can't see it.":"GitHub error "+r.status+(m?": "+m:""));
+    e.status=r.status;return e},
+  devName(){return this.cfg.device||(/iPhone|Android/i.test(navigator.userAgent)?"Phone":"Laptop")},
+  touch(){if(!this.enabled())return;this.dirty=true;clearTimeout(this.t);this.t=setTimeout(()=>this.sync(),8000);this.paint()},
+  paint(){const el=$("#sync");if(!el||!this.enabled())return;
+    const tm=this.last?new Date(this.last).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}):"";
+    const s=this.busy?"busy":navigator.onLine===false?"offline":this.state;
+    el.className="sync "+(s==="ok"&&!this.dirty?"cloud":"local");
+    el.textContent=s==="busy"?"GitHub: syncing…":s==="offline"?"GitHub: offline":s==="error"?"GitHub: not synced":this.dirty?"GitHub: changes waiting":"GitHub: synced "+tm;
+    el.title=this.msg||"";el.style.cursor="pointer"},
+  /* merge one row key from local + remote */
+  mergeKey(k,L,R,LT,RT){
+    const eps=[L&&L.ep||0,R&&R.ep||0,LT&&LT.ep||0,RT&&RT.ep||0];const E=Math.max(...eps);
+    const Lr=L&&(L.ep||0)===E?L:null,Rr=R&&(R.ep||0)===E?R:null;
+    if(!Lr&&!Rr)return{tomb:{ep:E}};
+    let row;
+    if(Lr&&Rr){
+      const base=(Lr.upd||0)>(Rr.upd||0)?Lr:Rr,other=base===Lr?Rr:Lr;row={...base};
+      for(const f of["name","brand","cat","img","notes","fmt"])if(!row[f]&&other[f])row[f]=other[f];
+      row.dev={...(Rr.dev||{}),[ME]:+((Lr.dev||{})[ME]||0)};
+      for(const d in(Lr.dev||{}))if(!(d in row.dev))row.dev[d]=Lr.dev[d];
+      row.first=Math.min(Lr.first||Infinity,Rr.first||Infinity);row.last=Math.max(Lr.last||0,Rr.last||0);
+    }else row={...(Lr||Rr),dev:{...((Lr||Rr).dev||{})}};
+    row.k=k;row.ep=E;row.qty=devSum(row);
+    const t=(LT&&LT.ep===E)||(RT&&RT.ep===E)?{ep:E}:null;
+    return{row,tomb:t};
+  },
+  mergeAll(remote){
+    const R=remote||{rows:{},tomb:{},learned:{}};const rows={},tomb={};
+    const keys=new Set([...Object.keys(S.rows),...Object.keys(S.tomb),...Object.keys(R.rows||{}),...Object.keys(R.tomb||{})]);
+    for(const k of keys){const m=this.mergeKey(k,S.rows[k],(R.rows||{})[k],S.tomb[k],(R.tomb||{})[k]);if(m.row)rows[k]=m.row;if(m.tomb)tomb[k]=m.tomb}
+    return{rows,tomb,learned:{...(R.learned||{}),...S.learned}};
+  },
+  canon(o){const st=v=>v&&typeof v==="object"?(Array.isArray(v)?"["+v.map(st).join(",")+"]":"{"+Object.keys(v).sort().filter(k=>v[k]!==undefined&&v[k]!==""&&v[k]!==null).map(k=>JSON.stringify(k)+":"+st(v[k])).join(",")+"}"):JSON.stringify(v);
+    return st({rows:o.rows||{},tomb:o.tomb||{},learned:o.learned||{},catalogAt:o.catalogAt||0,photos:o.photos||{}})},
+  async sync(manual){
+    if(!this.enabled())return;
+    if(navigator.onLine===false){this.state="offline";this.paint();return}
+    if(this.busy){this.again=true;return}
+    this.busy=true;this.dirty=false;this.paint();clearTimeout(this.t);
+    try{
+      for(let attempt=0;attempt<4;attempt++){
+        const remote=await this.getFile("inventory/scans.json");
+        const R=remote&&remote.data||null;
+        // item list: newest wins
+        const rCat=R&&R.catalogAt||0;let catalogAt=Math.max(rCat,S.catalog.at||0);
+        if((S.catalog.at||0)>rCat&&S.catalog.items.length){
+          const f=await this.getFile("inventory/item-list.json");
+          const p=await this.putFile("inventory/item-list.json",JSON.stringify(S.catalog),f&&f.sha,"Item list: "+(S.catalog.file||"updated")+" ("+S.catalog.items.length+" items) from "+this.devName());
+          if(p.conflict)continue;
+        }else if(rCat>(S.catalog.at||0)){
+          const f=await this.getFile("inventory/item-list.json");
+          if(f&&f.data&&f.data.items){S.catalog=f.data;lsSet("catalog",S.catalog);buildIndex()}
+        }
+        const m=this.mergeAll(R);
+        const photos=await this.syncPhotos(R);
+        const next={v:1,app:"Stockroom Scanner",updated:new Date().toISOString(),rows:m.rows,tomb:m.tomb,learned:m.learned,catalogAt,photos,
+          devices:{...(R&&R.devices||{}),[ME]:{name:this.devName(),last:new Date().toISOString()}}};
+        S.rows=m.rows;S.tomb=m.tomb;S.learned=m.learned;lsSet("rows",S.rows);lsSet("tomb",S.tomb);lsSet("learned",S.learned);
+        if(S.lastKey&&!S.rows[S.lastKey])S.lastKey=null;
+        buildIndex();render();
+        if(!R||this.canon(next)!==this.canon(R)){
+          const n=Object.keys(m.rows).length,u=Object.values(m.rows).reduce((s,r)=>s+r.qty,0);
+          const p=await this.putFile("inventory/scans.json",JSON.stringify(next,null,1),remote&&remote.sha,"Count sheet from "+this.devName()+": "+n+" items, "+u+" units");
+          if(p.conflict)continue;
+        }
+        this.state="ok";this.msg="";this.last=Date.now();lsSet("ghlast",this.last);
+        if(manual)toast("Synced with GitHub");
+        break;
+      }
+    }catch(e){this.state="error";this.msg=e.message||"Sync failed";this.dirty=true;if(manual)toast(this.msg)}
+    finally{this.busy=false;this.paint();if(this.again){this.again=false;this.sync()}}
+  },
+  async test(){
+    const r=await this.req("");
+    if(!r.ok)throw this.err(r);
+    const w=[];if(!(r.body.permissions&&r.body.permissions.push))throw new Error("The token can read but not write this repository. Give it Contents: Read and write.");
+    if(!r.body.private)w.push("This repository is public, so anyone can see your inventory. Make it private in its Settings.");
+    if(!this.cfg.branch)this.cfg.branch=r.body.default_branch||"main";
+    return w;
+  },
+  async snapshot(){
+    const csv=csvText(Object.values(S.rows).sort((a,b)=>b.last-a.last));
+    const p="inventory/snapshots/count-sheet_"+stamp()+"_"+this.devName().replace(/[^\w-]+/g,"-")+".csv";
+    const r=await this.putFile(p,csv,null,"Count sheet snapshot from "+this.devName());
+    if(r.conflict)throw new Error("A snapshot with that name already exists. Try again in a minute.");
+    return p;
+  }
+};
+window.addEventListener("online",()=>{GH.paint();GH.sync()});
+window.addEventListener("offline",()=>GH.paint());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&GH.enabled()&&Date.now()-GH.last>30000)GH.sync()});
+setInterval(()=>{if(document.visibilityState==="visible"&&GH.enabled())GH.sync()},90000);
 
 /* ---------- symbology names ---------- */
 const FMT={UPC_A:"UPC-A",UPC_E:"UPC-E",EAN_13:"EAN-13",EAN_8:"EAN-8",CODE_128:"Code 128",CODE_39:"Code 39",CODE_93:"Code 93",ITF:"ITF",CODABAR:"Codabar",QR_CODE:"QR",DATA_MATRIX:"Data Matrix",PDF_417:"PDF417",
@@ -303,8 +517,8 @@ function addScan(code,fmt){
   code=String(code||"").trim().replace(/[\r\n\t]/g,"");if(!code)return null;
   const loc=($("#loc").value||"").trim();const k=rowKey(code,loc);const now=Date.now();
   let r=S.rows[k];
-  if(r){r.qty+=1;r.last=now;if(!r.name){r.name=lookupName(code)}}
-  else{r={k,code,fmt:fmt||guessFmt(code),name:lookupName(code),qty:1,loc,notes:"",first:now,last:now};S.rows[k]=r}
+  if(r){adj(r,1);r.last=now;if(!r.name){r.name=lookupName(code)}}
+  else{r={k,code,fmt:fmt||guessFmt(code),name:lookupName(code),qty:0,dev:{},ep:(S.tomb[k]&&S.tomb[k].ep)||0,loc,notes:"",first:now,last:now};adj(r,1);S.rows[k]=r}
   const cached=LK.cache[r.code];
   if(cached&&cached.hit&&applyInfo(r,cached,false)){/* filled from earlier lookup */}
   S.lastKey=k;Store.saveRow(r);render(k);
@@ -486,7 +700,7 @@ function render(flashKey){
   $("#totals").textContent=all.length?vr.length.toLocaleString()+" items · "+units.toLocaleString()+" units":"";
   $("#filters").hidden=!all.length;$("#empty").hidden=!!all.length;
   const ul=$("#rows");ul.hidden=!vr.length;
-  ul.innerHTML=vr.map(r=>'<li data-k="'+r.k+'"'+(r.k===flashKey?' class="flash"':'')+'><button class="rowbtn" type="button" aria-label="Edit '+esc(r.name||r.code)+'"><span class="r-name'+(r.name?'':' missing')+'">'+esc(r.name||"No name yet")+'</span><span class="r-qty">'+r.qty+'<small>qty</small></span><span class="r-meta"><span class="code">'+esc(r.code)+'</span>'+(r.brand?'<span>'+esc(r.brand)+'</span>':'')+(r.loc?'<span>'+esc(r.loc)+'</span>':'')+(r.notes?'<span>“'+esc(r.notes)+'”</span>':'')+'<span>'+fmtTime(r.last)+'</span></span></button></li>').join("");
+  ul.innerHTML=vr.map(r=>'<li data-k="'+r.k+'"'+(r.k===flashKey?' class="flash"':'')+'><button class="rowbtn" type="button" aria-label="Edit '+esc(r.name||r.code)+'">'+(PH.src(r.code)?'<img class="r-pic" src="'+PH.src(r.code)+'" alt="">':'<span class="r-pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>')+'<span class="r-name'+(r.name?'':' missing')+'">'+esc(r.name||"No name yet")+'</span><span class="r-qty">'+r.qty+'<small>qty</small></span><span class="r-meta"><span class="code">'+esc(r.code)+'</span>'+(r.brand?'<span>'+esc(r.brand)+'</span>':'')+(r.loc?'<span>'+esc(r.loc)+'</span>':'')+(r.notes?'<span>“'+esc(r.notes)+'”</span>':'')+'<span>'+fmtTime(r.last)+'</span></span></button></li>').join("");
   renderLast();
   $("#bXlsx").disabled=$("#bCsv").disabled=!vr.length;
 }
@@ -496,24 +710,36 @@ function renderLast(){
   const sub=[r.brand,r.cat].filter(Boolean).map(esc).join(" · ");
   const busy=LK.state[r.code]==="wait"||LK.state[r.code]==="busy";
   el.innerHTML='<div class="eyebrow">Last scan'+(r.loc?' · '+esc(r.loc):'')+'</div>'+
-    '<div class="lastbody">'+(r.img&&!inArtifact?'<img class="thumb" src="'+esc(r.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
+    '<div class="lastbody">'+(PH.src(r.code)?'<img class="thumb own" src="'+PH.src(r.code)+'" alt="">':(r.img&&!inArtifact?'<img class="thumb" src="'+esc(r.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':''))+
     '<div class="txt"><div class="nm'+(r.name?'':' missing')+'">'+esc(r.name||(busy?"Looking up…":"Not in your item list"))+'</div>'+
     (sub?'<div class="sub">'+sub+'</div>':'')+
     '<div class="codeline"><span>'+esc(r.code)+'</span><span class="tag">'+esc(r.fmt||"")+'</span><span id="lkNote">'+lookupNote(r)+'</span></div></div></div>'+
     (r.name?'':'<form class="namefix" data-x="namefix"><label class="sr" for="nameNow">Name for this barcode</label><input class="field" id="nameNow" placeholder="Type the item name" autocomplete="off"><button class="btn" type="submit">Save</button></form>')+
-    '<div class="qtyctl"><button type="button" data-x="dec" aria-label="Minus one">−</button><output aria-label="Quantity">'+r.qty+'</output><button type="button" data-x="inc" aria-label="Plus one">+</button><span class="grow"></span><button class="btn" type="button" data-x="edit">Edit</button></div>';
+    '<div class="qtyctl"><button type="button" data-x="dec" aria-label="Minus one">−</button><output aria-label="Quantity">'+r.qty+'</output><button type="button" data-x="inc" aria-label="Plus one">+</button><span class="grow"></span><button class="btn" type="button" data-x="photo">'+(PH.src(r.code)?'Photo':'Add photo')+'</button><button class="btn" type="button" data-x="edit">Edit</button></div>';
+}
+
+/* ---------- item photo picking ---------- */
+function phPreview(code){const u=PH.src(code);return u?'<img class="photo" src="'+u+'" alt="Item photo">':'<p class="hint">No photo yet. Take one or choose one from your photos.</p>'}
+let phTarget=null;
+function pickPhoto(code,camera){phTarget=code;const el=$(camera?"#itemTake":"#itemPick");el.value="";el.click()}
+async function onItemPhoto(e){
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||!phTarget)return;
+  const code=phTarget;showBusy("Saving photo…");
+  try{await PH.set(code,f);hideBusy();render();if($("#ePhWrap")&&curEdit&&S.rows[curEdit])openEdit(curEdit);toast("Photo saved")}
+  catch(x){hideBusy();toast(x.message||"Couldn't save that photo.")}
 }
 
 /* ---------- sheets ---------- */
 function openSheet(html,bind){
   const layer=$("#layer");layer.innerHTML='<div class="scrim" data-x="scrim"><div class="sheet" role="dialog" aria-modal="true">'+html+'</div></div>';
   const scrim=layer.firstChild;scrim.addEventListener("click",e=>{if(e.target===scrim)closeSheet()});
-  bind&&bind(scrim.firstChild);const f=scrim.querySelector("input,select,button");f&&f.focus({preventScroll:true});
+  bind&&bind(scrim.firstChild);const f=scrim.querySelector("[data-autofocus]")||scrim.querySelector(".sheet button");f&&f.focus({preventScroll:true});
 }
 function closeSheet(){$("#layer").innerHTML=""}
 function armButton(btn,label,fn){btn.addEventListener("click",()=>{if(btn.classList.contains("armed")){fn()}else{btn.classList.add("armed");const o=btn.textContent;btn.textContent=label;setTimeout(()=>{if(btn.isConnected){btn.classList.remove("armed");btn.textContent=o}},4000)}})}
 
-function openEdit(k){
+let curEdit=null;
+function openEdit(k){curEdit=k;
   const r=S.rows[k];if(!r)return;
   openSheet('<h3>Edit item</h3>'+
    '<div class="codeline"><span>'+esc(r.code)+'</span><span class="tag">'+esc(r.fmt||"")+'</span></div>'+
@@ -521,8 +747,9 @@ function openEdit(k){
    '<div><label class="lbl" for="eQty">Quantity</label><div class="qtyctl"><button type="button" data-x="d">−</button><input id="eQty" type="number" inputmode="numeric" min="0" step="1" value="'+r.qty+'"><button type="button" data-x="i">+</button></div></div>'+
    '<div><label class="lbl" for="eLoc">Location / bin</label><input class="field" id="eLoc" list="locs" value="'+esc(r.loc)+'" autocomplete="off"></div>'+
    '<div class="row2"><div><label class="lbl" for="eBrand">Brand</label><input class="field" id="eBrand" value="'+esc(r.brand)+'" autocomplete="off"></div><div><label class="lbl" for="eCat">Category</label><input class="field" id="eCat" value="'+esc(r.cat)+'" autocomplete="off"></div></div>'+
-   '<div><label class="lbl" for="eImg">Photo link</label><input class="field" id="eImg" type="url" inputmode="url" value="'+esc(r.img)+'" placeholder="https://…" autocomplete="off"></div>'+
-   (r.img&&!inArtifact?'<img class="photo" id="ePhoto" src="'+esc(r.img)+'" alt="Product photo" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
+   '<div class="phbox"><label class="lbl">Item photo</label><div id="ePhWrap">'+phPreview(r.code)+'</div><div class="phbtns"><button class="btn" type="button" data-x="phTake">Take photo</button><button class="btn" type="button" data-x="phPick">Choose photo</button>'+(PH.src(r.code)?'<button class="btn danger" type="button" data-x="phDel">Remove photo</button>':'')+'</div></div>'+
+   '<div><label class="lbl" for="eImg">Online photo link</label><input class="field" id="eImg" type="url" inputmode="url" value="'+esc(r.img)+'" placeholder="https://…" autocomplete="off"></div>'+
+   (r.img&&!inArtifact&&!PH.src(r.code)?'<img class="photo" id="ePhoto" src="'+esc(r.img)+'" alt="Product photo" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
    '<div><label class="lbl" for="eNotes">Notes</label><textarea class="field" id="eNotes">'+esc(r.notes)+'</textarea></div>'+
    (isUPC(r.code)?'<div class="actions"><button class="btn" type="button" data-x="lookup"'+(LK.ready()?'':' disabled')+'>Look up online</button><span class="kv" id="eLkMsg">'+(LK.ready()?'Fills empty fields. Your own entries are kept.':LK.why()==="offline"?'Offline right now.':LK.why()==="off"?'Online lookup is turned off in More.':'Online lookup works when the app runs from its own web address.')+'</span></div>':'')+
    '<p class="kv">First scanned <b>'+fmtTime(r.first)+'</b> · last <b>'+fmtTime(r.last)+'</b></p>'+
@@ -532,6 +759,9 @@ function openEdit(k){
     sh.querySelector('[data-x="d"]').onclick=()=>{q.value=Math.max(0,(parseInt(q.value)||0)-1)};
     sh.querySelector('[data-x="i"]').onclick=()=>{q.value=(parseInt(q.value)||0)+1};
     sh.querySelector('[data-x="cancel"]').onclick=closeSheet;
+    const pt=sh.querySelector('[data-x="phTake"]'),pp=sh.querySelector('[data-x="phPick"]'),pd=sh.querySelector('[data-x="phDel"]');
+    pt.onclick=()=>pickPhoto(r.code,true);pp.onclick=()=>pickPhoto(r.code,false);
+    if(pd)armButton(pd,"Tap again to remove",async()=>{await PH.remove(r.code);render();openEdit(k);toast("Photo removed")});
     const lb=sh.querySelector('[data-x="lookup"]');
     if(lb)lb.onclick=async()=>{lb.disabled=true;const msg=sh.querySelector("#eLkMsg");msg.textContent="Looking up…";
       const res=await lookupOnline(r.code);LK.last={code:r.code,...res,at:Date.now()};
@@ -546,8 +776,10 @@ function openEdit(k){
       const brand=sh.querySelector("#eBrand").value.trim(),cat=sh.querySelector("#eCat").value.trim(),img=sh.querySelector("#eImg").value.trim();
       if(name&&name!==r.name){S.learned[r.code]=name;Store.saveLearned();buildIndex()}
       const nk=rowKey(r.code,loc);
-      if(nk!==k&&S.rows[nk]){const t=S.rows[nk];t.qty+=qty;t.last=Math.max(t.last,r.last);t.first=Math.min(t.first,r.first);if(name)t.name=name;if(brand)t.brand=brand;if(cat)t.cat=cat;if(img)t.img=img;if(notes)t.notes=t.notes?t.notes+"; "+notes:notes;delete S.rows[k];Store.delRow(k);Store.saveRow(t);S.lastKey=S.lastKey===k?nk:S.lastKey;toast("Merged into the existing row at "+(loc||"no location"))}
-      else{const u={...r,k:nk,name,brand,cat,img,qty,loc,notes};if(nk!==k){delete S.rows[k];Store.delRow(k);if(S.lastKey===k)S.lastKey=nk}S.rows[nk]=u;Store.saveRow(u)}
+      const fieldsChanged=name!==r.name||brand!==(r.brand||"")||cat!==(r.cat||"")||img!==(r.img||"")||notes!==(r.notes||"");
+      if(nk!==k&&S.rows[nk]){const t=S.rows[nk];adj(t,qty);t.upd=Date.now();t.last=Math.max(t.last,r.last);t.first=Math.min(t.first,r.first);if(name)t.name=name;if(brand)t.brand=brand;if(cat)t.cat=cat;if(img)t.img=img;if(notes)t.notes=t.notes?t.notes+"; "+notes:notes;delete S.rows[k];Store.delRow(k);Store.saveRow(t);S.lastKey=S.lastKey===k?nk:S.lastKey;toast("Merged into the existing row at "+(loc||"no location"))}
+      else if(nk!==k){const u={...r,k:nk,name,brand,cat,img,loc,notes,qty:0,dev:{},ep:(S.tomb[nk]&&S.tomb[nk].ep)||0,upd:Date.now()};adj(u,qty);delete S.rows[k];Store.delRow(k);if(S.lastKey===k)S.lastKey=nk;S.rows[nk]=u;Store.saveRow(u)}
+      else{Object.assign(r,{name,brand,cat,img,notes});if(fieldsChanged)r.upd=Date.now();adj(r,qty-r.qty);Store.saveRow(r)}
       closeSheet();render(nk);
     };
   });
@@ -593,7 +825,8 @@ function showMapping(name,aoa){
 function openMore(){
   const n=Object.keys(S.rows).length;
   openSheet('<h3>More</h3>'+
-   '<div class="kv">'+(Store.db?'Scans are <b>saved to your Claude account</b>, so they come back when you reopen this page on any device.':'Scans are <b>saved on this phone</b> in this browser. Export regularly so nothing is lost if Safari clears site data.')+'</div>'+
+   '<div class="kv">'+(Store.db?'Scans are <b>saved to your Claude account</b>, so they come back when you reopen this page on any device.':GH.enabled()?'Scans are <b>saved on this device and synced to GitHub</b>.':'Scans are <b>saved on this phone</b> in this browser. Export regularly so nothing is lost if Safari clears site data.')+'</div>'+
+   ghMoreHtml()+
    '<label class="switch" for="wOn"><input type="checkbox" id="wOn"'+(W.on?' checked':'')+'><span>Handheld scanner (USB or wireless)<small>Catch scans anywhere on this page. No need to click into a box first.</small></span></label>'+
    '<div class="kv">'+(W.lastScan?'Last scanner read: <b>'+esc(W.lastScan.code)+'</b> · '+W.lastScan.ms+' ms per character · ended with '+(W.lastScan.how==="none"?'no Enter key':W.lastScan.how):'No scanner reads yet this session. Scan any barcode to test.')+'</div>'+
    '<ul class="tips"><li>Plug the scanner\'s USB receiver (or cable) into the laptop. It types like a keyboard, so there is nothing to install.</li><li>Keep this page in front. If the bar at the top turns yellow, click it, then scan.</li><li>If digits come out wrong, set the laptop keyboard layout to <b>US English</b>.</li><li>If short codes don\'t add, turn on the scanner\'s <b>Enter (CR) suffix</b> using the setup barcode in its manual. Codes of 6+ characters work either way.</li></ul>'+
@@ -604,9 +837,45 @@ function openMore(){
     const lo=sh.querySelector("#lkOn");if(lo)lo.onchange=e=>{LK.on=e.target.checked;lsSet("lookup",LK.on);paintLookup();if(LK.on)catchUp();openMore()};
     const la=sh.querySelector('[data-x="lkall"]');if(la)la.onclick=()=>{let n=0;for(const r of Object.values(S.rows)){if(needsInfo(r)){const c=LK.cache[r.code];if(!(c&&c.hit)){LK.queue(r.code,true);n++}}}toast(n?"Looking up "+n+" item"+(n>1?"s":"")+"…":"Nothing left to look up");closeSheet()};
     sh.querySelector("#wOn").onchange=e=>{W.on=e.target.checked;lsSet("wedge",W.on);wReset();wStatus()};
+    ghBind(sh);
     armButton(sh.querySelector('[data-x="clear"]'),"Tap again: delete all scans",()=>{const ks=Object.keys(S.rows);S.rows={};S.lastKey=null;ks.forEach(k=>Store.delRow(k));closeSheet();render();toast("Count sheet cleared")})});
 }
 
+function ghMoreHtml(){
+  if(inArtifact)return '<div class="kv"><b>GitHub sync</b> works when the app runs from its own web address (GitHub Pages). Inside the Claude app, scans are saved to your Claude account instead.</div>';
+  const c=GH.cfg,on=GH.enabled();
+  const last=GH.last?new Date(GH.last).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"never";
+  const link=on?'https://github.com/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/tree/'+encodeURIComponent(c.branch||"main")+'/inventory':'';
+  return '<div class="ghbox"><h4>GitHub sync</h4>'+
+   (on?'<div class="kv">'+(GH.state==="error"?'<b class="bad">Not synced:</b> '+esc(GH.msg):'<b>Connected</b> to '+esc(c.owner+'/'+c.repo))+' · last sync '+esc(last)+'</div>'+
+       '<div class="kv"><a href="'+link+'" target="_blank" rel="noopener">Open the inventory folder on GitHub</a></div>'
+      :'<p class="hint">Saves your count sheet and item list to a private GitHub repository, so your phone and laptop share one list. Counts scanned on different devices add up.</p>')+
+   '<div class="row2"><div><label class="lbl" for="ghOwner">GitHub username</label><input class="field" id="ghOwner" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(c.owner)+'" placeholder="your-username"></div>'+
+   '<div><label class="lbl" for="ghRepo">Data repository</label><input class="field" id="ghRepo" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(c.repo)+'" placeholder="stockroom-data"></div></div>'+
+   '<div class="row2"><div><label class="lbl" for="ghBranch">Branch</label><input class="field" id="ghBranch" autocomplete="off" autocapitalize="off" value="'+esc(c.branch||"main")+'"></div>'+
+   '<div><label class="lbl" for="ghDevice">This device\'s name</label><input class="field" id="ghDevice" autocomplete="off" value="'+esc(c.device)+'" placeholder="'+esc(GH.devName())+'"></div></div>'+
+   '<div><label class="lbl" for="ghToken">Access token</label><input class="field" id="ghToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+(c.token?'Saved – leave blank to keep':'github_pat_…')+'"></div>'+
+   '<p class="hint">Use a fine-grained token limited to this one repository with <b>Contents: Read and write</b>. It is stored only in this browser.</p>'+
+   '<div class="kv" id="ghMsg" role="status"></div>'+
+   '<div class="actions"><button class="btn primary" type="button" data-x="ghsave">'+(on?'Save & sync':'Connect & sync')+'</button>'+
+   (on?'<button class="btn" type="button" data-x="ghsync">Sync now</button><button class="btn" type="button" data-x="ghsnap">Save count sheet to GitHub</button><button class="btn danger" type="button" data-x="ghoff">Disconnect</button>':'')+'</div></div>';
+}
+function ghBind(sh){
+  const msg=t=>{const m=sh.querySelector("#ghMsg");if(m)m.innerHTML=t};
+  const s=sh.querySelector('[data-x="ghsave"]');if(!s)return;
+  s.onclick=async()=>{
+    const v=id=>sh.querySelector("#"+id).value.trim();
+    const cfg={owner:v("ghOwner").replace(/^https?:\/\/github\.com\//,"").split("/")[0],repo:v("ghRepo").replace(/\.git$/,""),branch:v("ghBranch")||"main",device:v("ghDevice"),token:v("ghToken")||GH.cfg.token};
+    if(!cfg.owner||!cfg.repo||!cfg.token){msg('<b class="bad">Fill in username, repository and token.</b>');return}
+    const old=GH.cfg;GH.cfg=cfg;s.disabled=true;msg("Checking the repository…");
+    try{const warn=await GH.test();lsSet("gh",GH.cfg);msg((warn.length?'<b class="bad">'+esc(warn.join(" "))+'</b> ':'')+'Connected. Syncing…');await GH.sync(true);openMore()}
+    catch(e){GH.cfg=old;msg('<b class="bad">'+esc(e.message||"Couldn't reach GitHub.")+'</b>')}
+    finally{s.disabled=false}
+  };
+  const y=sh.querySelector('[data-x="ghsync"]');if(y)y.onclick=async()=>{msg("Syncing…");await GH.sync(true);openMore()};
+  const p=sh.querySelector('[data-x="ghsnap"]');if(p)p.onclick=async()=>{p.disabled=true;msg("Saving…");try{const path=await GH.snapshot();msg("Saved "+esc(path))}catch(e){msg('<b class="bad">'+esc(e.message)+'</b>')}finally{p.disabled=false}};
+  const o=sh.querySelector('[data-x="ghoff"]');if(o)armButton(o,"Tap again to disconnect",()=>{GH.cfg={owner:"",repo:"",branch:"main",token:"",device:GH.cfg.device};lsSet("gh",GH.cfg);GH.state="off";setSync(Store.db?"cloud":"local");openMore();toast("Disconnected. Scans stay on this device.")});
+}
 function lkMoreHtml(){
   const w=LK.why();const codes=new Set(Object.values(S.rows).filter(r=>needsInfo(r)&&!(LK.cache[r.code]&&LK.cache[r.code].hit)).map(r=>r.code));
   const status=w==="ready"?'<b>On.</b> New barcodes are looked up automatically.':w==="offline"?'<b>Offline.</b> Items scanned now are looked up when the connection returns.':w==="off"?'<b>Off.</b>':'<b>Not available here.</b> Inside the Claude app the page can\'t reach outside websites. Open the app from its own web address (GitHub Pages) for live lookups.';
@@ -621,26 +890,28 @@ function lkMoreHtml(){
 /* ---------- export ---------- */
 function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())}
 function exportName(ext){const lbl=S.fLoc==="__all"?"all-locations":(locations().find(l=>locKey(l)===S.fLoc)||"no-location");return "inventory_"+lbl.replace(/[^\w-]+/g,"-").replace(/^-|-$/g,"").toLowerCase()+"_"+stamp()+"."+ext}
-const HEAD=["Barcode","Name","Brand","Category","Qty","Location","Notes","Photo link","Barcode type","First scanned","Last scanned"];
-const rowOut=(r,d)=>[r.code,r.name,r.brand||"",r.cat||"",r.qty,r.loc,r.notes,r.img||"",r.fmt,d(r.first),d(r.last)];
+const HEAD=["Barcode","Name","Brand","Category","Qty","Location","Notes","Photo link","Barcode type","First scanned","Last scanned","Item photo"];
+const rowOut=(r,d)=>[r.code,r.name,r.brand||"",r.cat||"",r.qty,r.loc,r.notes,r.img||"",r.fmt,d(r.first),d(r.last),PH.link(r.code)];
 async function exportXlsx(){
   if(!window.XLSX){toast("The Excel library didn't load. Check your connection and reopen the page.");return}
   const vr=viewRows();
   const aoa=[HEAD,...vr.map(r=>rowOut(r,t=>new Date(t)))];
   const ws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true,dateNF:"yyyy-mm-dd hh:mm"});
   for(let i=1;i<aoa.length;i++){const a=XLSX.utils.encode_cell({r:i,c:0});if(ws[a]){ws[a].t="s";ws[a].v=String(aoa[i][0]);ws[a].z="@"}}
-  ws["!cols"]=[{wch:16},{wch:42},{wch:18},{wch:20},{wch:6},{wch:20},{wch:30},{wch:40},{wch:12},{wch:17},{wch:17}];
-  for(let i=1;i<aoa.length;i++){const u=aoa[i][7];const a=XLSX.utils.encode_cell({r:i,c:7});if(u&&/^https?:\/\//.test(u)&&ws[a])ws[a].l={Target:u}}
+  ws["!cols"]=[{wch:16},{wch:42},{wch:18},{wch:20},{wch:6},{wch:20},{wch:30},{wch:40},{wch:12},{wch:17},{wch:17},{wch:40}];
+  for(let i=1;i<aoa.length;i++){for(const col of [7,11]){const u=aoa[i][col];const a=XLSX.utils.encode_cell({r:i,c:col});if(u&&/^https?:\/\//.test(u)&&ws[a])ws[a].l={Target:u}}}
   ws["!autofilter"]={ref:ws["!ref"]};
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Count");
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   await saveFile(exportName("xlsx"),new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
 }
-async function exportCsv(){
+function csvText(list){
   const q=v=>{v=v==null?"":String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const iso=t=>{const d=new Date(t),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())};
-  const lines=[HEAD.map(q).join(","),...viewRows().map(r=>rowOut(r,iso).map(q).join(","))];
-  await saveFile(exportName("csv"),new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"}));
+  return "﻿"+[HEAD.map(q).join(","),...list.map(r=>rowOut(r,iso).map(q).join(","))].join("\r\n");
+}
+async function exportCsv(){
+  await saveFile(exportName("csv"),new Blob([csvText(viewRows())],{type:"text/csv"}));
 }
 async function saveFile(name,blob){
   if(inArtifact){
@@ -729,12 +1000,14 @@ $("#fLoc").addEventListener("change",e=>{S.fLoc=e.target.value;render()});
 $("#q").addEventListener("input",e=>{S.q=e.target.value;render()});
 $("#rows").addEventListener("click",e=>{const li=e.target.closest("li[data-k]");if(li)openEdit(li.dataset.k)});
 $("#last").addEventListener("click",e=>{const x=e.target.closest("[data-x]");const r=S.rows[S.lastKey];if(!x||!r)return;
-  if(x.dataset.x==="inc"){r.qty++;r.last=Date.now();Store.saveRow(r);render(r.k)}
-  else if(x.dataset.x==="dec"){if(r.qty>0){r.qty--;Store.saveRow(r);render()}}
-  else if(x.dataset.x==="edit"){openEdit(r.k)}});
+  if(x.dataset.x==="inc"){adj(r,1);r.last=Date.now();Store.saveRow(r);render(r.k)}
+  else if(x.dataset.x==="dec"){if(r.qty>0){adj(r,-1);Store.saveRow(r);render()}}
+  else if(x.dataset.x==="edit"){openEdit(r.k)}
+  else if(x.dataset.x==="photo"){if(PH.src(r.code))openEdit(r.k);else pickPhoto(r.code,false)}});
 $("#last").addEventListener("submit",e=>{e.preventDefault();const r=S.rows[S.lastKey];const v=($("#nameNow")||{}).value;if(!r||!v||!v.trim())return;
-  r.name=v.trim();S.learned[r.code]=r.name;Store.saveLearned();buildIndex();Store.saveRow(r);render(r.k);toast("Name saved for "+r.code)});
+  r.name=v.trim();r.upd=Date.now();S.learned[r.code]=r.name;Store.saveLearned();buildIndex();Store.saveRow(r);render(r.k);toast("Name saved for "+r.code)});
 $("#bXlsx").addEventListener("click",exportXlsx);
+$("#itemTake").addEventListener("change",onItemPhoto);$("#itemPick").addEventListener("change",onItemPhoto);
 $("#bCsv").addEventListener("click",exportCsv);
 $("#bItems").addEventListener("click",openItems);
 $("#bMore").addEventListener("click",openMore);
@@ -749,7 +1022,9 @@ $("#listIn").addEventListener("change",async e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#layer").innerHTML)closeSheet()}});
 
-buildIndex();render();wStatus();paintLookup();Store.init().then(()=>{render();catchUp()});
+if(location.hostname==="localhost")window.__sr={GH,S,buildIndex,Store,PH};
+$("#sync").addEventListener("click",()=>{if(GH.enabled()){if(GH.state==="error")openMore();else GH.sync(true)}});
+buildIndex();render();wStatus();paintLookup();GH.paint();PH.loadAll().then(()=>render());Store.init().then(()=>{render();catchUp();if(GH.enabled())GH.sync()});
 })();
 </script>
 
